@@ -1,0 +1,25 @@
+meta {
+  name: 06 - Quitar Item
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/api/carrito/items/{{productoId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Quita el item del carrito. Responde 200 con el carrito ya sin ese item
+  (no 204, porque el carrito sigue existiendo -- distinto de "vaciar", que
+  borra todos los items).
+}

@@ -1,0 +1,32 @@
+meta {
+  name: 08 - Agregar Item - producto no encontrado
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/carrito/items
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "productoId": "00000000-0000-0000-0000-000000000000",
+    "cantidad": 1
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Un id que productos-service no reconoce. carrito-service consulta
+  sincrono antes de agregar, asi que responde 404 sin tocar el carrito.
+}

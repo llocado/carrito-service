@@ -1,0 +1,25 @@
+meta {
+  name: 02 - Ver Carrito
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/carrito
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Devuelve el carrito del usuario autenticado (el id de usuario sale del
+  claim "sub" del token, nunca de un parametro). Si el usuario no tiene
+  carrito todavia, devuelve uno vacio sin persistirlo.
+}

@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: carrito-service
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:carrito_db}
+    username: ${DB_USER:carrito_user}
+    password: ${DB_PASSWORD:carrito_password}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      # El esquema lo gestiona Liquibase; Hibernate solo valida que las
+      # entidades coincidan con lo que Liquibase ya creo.
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Realm de Keycloak levantado por supermercado-infra.
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/supermercado}
+
+server:
+  port: ${SERVER_PORT:8081}
+
+# URL base de productos-service, usada por el cliente REST sincrono que
+# obtiene nombre/precio al agregar un producto al carrito.
+productos-service:
+  base-url: ${PRODUCTOS_SERVICE_URL:http://localhost:8080}

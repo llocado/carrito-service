@@ -1,0 +1,36 @@
+meta {
+  name: 03 - Agregar Item
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/carrito/items
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "productoId": "{{productoId}}",
+    "cantidad": 2
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Agrega el producto creado en "01" al carrito. carrito-service consulta a
+  productos-service en el momento (llamada REST sincrona) para obtener
+  nombre y precio actuales, y guarda esa foto en el item.
+
+  Correr esta request dos veces incrementa la cantidad en vez de duplicar
+  el item (ver "04").
+}

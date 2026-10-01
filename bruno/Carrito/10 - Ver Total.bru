@@ -1,0 +1,29 @@
+meta {
+  name: 10 - Ver Total
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/api/carrito/total
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.total: isNumber
+}
+
+docs {
+  Devuelve solo el total a pagar (suma de precioUnitario * cantidad de todos
+  los items) del carrito del usuario autenticado, sin la lista de items.
+  Variante liviana de "02 - Ver Carrito", que ya incluye el total junto con
+  el detalle. Si el usuario no tiene carrito todavia, devuelve 0.
+
+  Correr despues de "03 - Agregar Item" para ver un total distinto de cero.
+}

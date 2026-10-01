@@ -1,0 +1,32 @@
+meta {
+  name: 04 - Agregar Item - incrementa cantidad
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/carrito/items
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "productoId": "{{productoId}}",
+    "cantidad": 3
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Corre "03" antes. Mismo productoId: en vez de crear un segundo item, la
+  cantidad del item existente pasa de 2 a 5.
+}

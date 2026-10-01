@@ -1,0 +1,30 @@
+meta {
+  name: 05 - Actualizar Cantidad
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/api/carrito/items/{{productoId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "cantidad": 10
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Fija la cantidad del item a un valor exacto (no suma, reemplaza).
+}

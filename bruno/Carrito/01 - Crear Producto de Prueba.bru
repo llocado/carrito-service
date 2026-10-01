@@ -1,0 +1,42 @@
+meta {
+  name: 01 - Crear Producto de Prueba
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{productosServiceUrl}}/api/productos
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "sku": "CARRITO-DEMO-01",
+    "nombre": "Pan Baguette",
+    "descripcion": "Producto de prueba para probar el carrito",
+    "precioMonto": 1200,
+    "moneda": "CLP",
+    "categoriaId": "b6f3c1e0-2a3b-4c5d-8e9f-0a1b2c3d4e5f"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+script:post-response {
+  if (res.body && res.body.id) {
+    bru.setVar("productoId", res.body.id);
+  }
+}
+
+docs {
+  Crea un producto en productos-service (debe estar corriendo en
+  localhost:8080) y guarda su id en la variable `productoId`, que usan las
+  siguientes requests de este carrito.
+}
