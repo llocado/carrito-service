@@ -34,11 +34,11 @@ tokens y escuchar eventos de `productos-service`.
 
 ## Estado del repo (importante)
 
-- `git init` ya hecho, rama `main`, **sin ningún commit todavía** y sin
-  remoto configurado. El primer commit queda pendiente de que el usuario lo
-  confirme explícitamente (regla general: nunca commitear sin confirmación).
-- Última vez verificado: 42 tests pasando. Re-verificar con `./gradlew test`
-  antes de asumir que sigue así si pasó tiempo desde la última sesión.
+- Rama `main` con el código completo commiteado localmente, **sin remoto
+  configurado** (nada pusheado).
+- Última vez verificado: 42 tests unitarios + 9 de integración pasando.
+  Re-verificar con `./gradlew test intTest` antes de asumir que sigue así si
+  pasó tiempo desde la última sesión.
 
 ## Convenciones propias de este servicio
 
