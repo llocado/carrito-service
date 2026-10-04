@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: carrito_user
       POSTGRES_PASSWORD: carrito_password
     ports:
-      - "5433:5432" # 5432 lo ocupa productos-service localmente
+      - "127.0.0.1:5433:5432" # 5432 lo ocupa productos-service localmente
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
