@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
@@ -45,10 +46,12 @@ public class CheckoutEventPublisherAdapter implements CheckoutEventPublisherPort
                 objectMapper.valueToTree(payload)
         );
 
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.EXCHANGE_CARRITO_EVENTS, RabbitMQConfig.ROUTING_KEY_CHECKOUT_INICIADO, envelope);
+        try (MDC.MDCCloseable ignored = MDC.putCloseable("correlationId", checkoutId.toString())) {
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.EXCHANGE_CARRITO_EVENTS, RabbitMQConfig.ROUTING_KEY_CHECKOUT_INICIADO, envelope);
 
-        log.info("Evento publicado eventType={} eventId={}", envelope.eventType(), envelope.eventId());
+            log.info("Evento publicado eventType={} eventId={}", envelope.eventType(), envelope.eventId());
+        }
     }
 
     private ItemEventoDto toEventoDto(ItemCarrito item) {

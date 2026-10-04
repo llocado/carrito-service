@@ -7,11 +7,13 @@ import com.supermercado.carrito.domain.exception.ProductoNoEncontradoException;
 import com.supermercado.carrito.domain.model.Carrito;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 // No es "final": @Transactional necesita que Spring genere un proxy CGLIB
 // (subclase en tiempo de ejecucion), y CGLIB no puede subclasificar una clase final.
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AgregarItemAlCarritoUseCase {
@@ -32,6 +34,8 @@ public class AgregarItemAlCarritoUseCase {
 
         carrito.agregarItem(producto.productoId(), producto.nombre(), producto.precioMonto(), producto.moneda(), cantidad);
 
-        return carritoRepositoryPort.guardar(carrito);
+        Carrito guardado = carritoRepositoryPort.guardar(carrito);
+        log.info("Item agregado usuarioId={} productoId={} cantidad={}", usuarioId, productoId, cantidad);
+        return guardado;
     }
 }

@@ -22,6 +22,7 @@ import com.supermercado.carrito.application.usecase.ObtenerTotalCarritoUseCase;
 import com.supermercado.carrito.application.usecase.QuitarItemDelCarritoUseCase;
 import com.supermercado.carrito.application.usecase.VaciarCarritoUseCase;
 import com.supermercado.carrito.domain.exception.CarritoVacioException;
+import com.supermercado.carrito.domain.exception.CatalogoNoDisponibleException;
 import com.supermercado.carrito.domain.exception.ItemNoEncontradoEnCarritoException;
 import com.supermercado.carrito.domain.exception.ProductoNoEncontradoException;
 import com.supermercado.carrito.domain.model.Carrito;
@@ -175,6 +176,22 @@ class CarritoControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").value("Producto no encontrado: " + PRODUCTO_ID));
+    }
+
+    @Test
+    void agregarItem_DeberiaRetornar503ConMensajeFijo_CuandoProductosServiceNoEstaDisponible() throws Exception {
+        AgregarItemRequest request = new AgregarItemRequest(PRODUCTO_ID, 1);
+        when(agregarItemAlCarritoUseCase.execute(eq(USUARIO_ID), eq(PRODUCTO_ID), eq(1)))
+                .thenThrow(new CatalogoNoDisponibleException(
+                        "El catalogo de productos no esta disponible en este momento",
+                        new RuntimeException("Connection refused: productos.interno:8080")));
+
+        mockMvc.perform(post("/api/carrito/items")
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.mensaje").value("El catalogo de productos no esta disponible en este momento"));
     }
 
     @Test

@@ -5,9 +5,11 @@ import com.supermercado.carrito.domain.exception.ItemNoEncontradoEnCarritoExcept
 import com.supermercado.carrito.domain.model.Carrito;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class QuitarItemDelCarritoUseCase {
@@ -25,6 +27,8 @@ public class QuitarItemDelCarritoUseCase {
 
         carrito.quitarItem(productoId);
 
-        return carritoRepositoryPort.guardar(carrito);
+        Carrito guardado = carritoRepositoryPort.guardar(carrito);
+        log.info("Item quitado usuarioId={} productoId={}", usuarioId, productoId);
+        return guardado;
     }
 }

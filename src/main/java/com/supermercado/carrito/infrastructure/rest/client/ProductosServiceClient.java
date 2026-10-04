@@ -1,19 +1,24 @@
 package com.supermercado.carrito.infrastructure.rest.client;
 
 import com.supermercado.carrito.application.port.CatalogoProductosPort;
+import com.supermercado.carrito.domain.exception.CatalogoNoDisponibleException;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 /**
  * Adaptador de salida: implementa el puerto CatalogoProductosPort llamando
  * por HTTP a productos-service. Es el unico punto de carrito-service que
  * conoce la forma de la respuesta REST de ese otro servicio.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ProductosServiceClient implements CatalogoProductosPort {
@@ -34,6 +39,13 @@ public class ProductosServiceClient implements CatalogoProductosPort {
             return Optional.of(new ProductoSnapshot(productoId, response.nombre(), response.precioMonto(), response.moneda()));
         } catch (HttpClientErrorException.NotFound e) {
             return Optional.empty();
+        } catch (RestClientException e) {
+            // Solo el estado HTTP: el cuerpo de error de otro servicio no se vuelca al log.
+            String causa = e instanceof RestClientResponseException r
+                    ? "HTTP " + r.getStatusCode().value()
+                    : e.getClass().getSimpleName() + ": " + e.getMessage();
+            log.error("productos-service no disponible o con error productoId={} causa={}", productoId, causa);
+            throw new CatalogoNoDisponibleException("El catalogo de productos no esta disponible en este momento", e);
         }
     }
 
