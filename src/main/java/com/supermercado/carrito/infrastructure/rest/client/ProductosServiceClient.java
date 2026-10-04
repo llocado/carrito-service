@@ -2,6 +2,7 @@ package com.supermercado.carrito.infrastructure.rest.client;
 
 import com.supermercado.carrito.application.port.CatalogoProductosPort;
 import com.supermercado.carrito.domain.exception.CatalogoNoDisponibleException;
+import com.supermercado.carrito.domain.exception.CatalogoRespuestaInesperadaException;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,6 +40,10 @@ public class ProductosServiceClient implements CatalogoProductosPort {
             return Optional.of(new ProductoSnapshot(productoId, response.nombre(), response.precioMonto(), response.moneda()));
         } catch (HttpClientErrorException.NotFound e) {
             return Optional.empty();
+        } catch (HttpClientErrorException e) {
+            // 4xx distinto de 404 (ya capturado arriba): no es una caida, es un rechazo que reintentar no arregla.
+            log.error("productos-service rechazo la consulta productoId={} causa=HTTP {}", productoId, e.getStatusCode().value());
+            throw new CatalogoRespuestaInesperadaException("El catalogo de productos respondio de forma inesperada", e);
         } catch (RestClientException e) {
             // Solo el estado HTTP: el cuerpo de error de otro servicio no se vuelca al log.
             String causa = e instanceof RestClientResponseException r

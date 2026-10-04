@@ -7,6 +7,7 @@ Contrato del bus de eventos (RabbitMQ) segun lo definido en el ROADMAP del proye
 - **`carrito.checkout-iniciado`** — [carrito.checkout-iniciado.schema.json](./carrito.checkout-iniciado.schema.json). Exchange `carrito.events` (topic), routing key = `eventType`. Se publica desde `IniciarCheckoutUseCase` cuando el usuario llama a `POST /api/carrito/checkout`. Consumido por `pedidos-service`, que crea el pedido.
   - `eventId` y `correlationId` son el id del intento de checkout (`checkoutId`), el mismo que devuelve el endpoint.
   - **Idempotencia:** si el cliente envia el header opcional `Idempotency-Key` (UUID), el `eventId` se deriva de `usuario + clave`. Reintentar con la misma clave produce el mismo `eventId` y `pedidos-service` lo descarta como duplicado. Sin header, cada llamada genera un `eventId` nuevo.
+  - **Una clave por intento:** reutilizarla (tras cambiar el carrito o para reintentar tras un pago fallido) devuelve el `checkoutId` original y `pedidos-service` descarta el evento como duplicado.
   - **El carrito no se modifica** al iniciar el checkout: se vacia recien cuando el pago se aprueba (politica del ROADMAP).
 
 ## Consume

@@ -23,6 +23,7 @@ import com.supermercado.carrito.application.usecase.QuitarItemDelCarritoUseCase;
 import com.supermercado.carrito.application.usecase.VaciarCarritoUseCase;
 import com.supermercado.carrito.domain.exception.CarritoVacioException;
 import com.supermercado.carrito.domain.exception.CatalogoNoDisponibleException;
+import com.supermercado.carrito.domain.exception.CatalogoRespuestaInesperadaException;
 import com.supermercado.carrito.domain.exception.ItemNoEncontradoEnCarritoException;
 import com.supermercado.carrito.domain.exception.ProductoNoEncontradoException;
 import com.supermercado.carrito.domain.model.Carrito;
@@ -34,6 +35,9 @@ import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.AmqpConnectException;
+import org.springframework.amqp.AmqpIOException;
+import org.springframework.amqp.AmqpTimeoutException;
+import org.springframework.amqp.support.converter.MessageConversionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -192,6 +196,39 @@ class CarritoControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.mensaje").value("El catalogo de productos no esta disponible en este momento"));
+    }
+
+    @Test
+    void agregarItem_DeberiaRetornar502ConMensajeFijo_CuandoProductosServiceRechazaLaConsulta() throws Exception {
+        AgregarItemRequest request = new AgregarItemRequest(PRODUCTO_ID, 1);
+        when(agregarItemAlCarritoUseCase.execute(eq(USUARIO_ID), eq(PRODUCTO_ID), eq(1)))
+                .thenThrow(new CatalogoRespuestaInesperadaException(
+                        "El catalogo de productos respondio de forma inesperada", new RuntimeException("401 Unauthorized")));
+
+        mockMvc.perform(post("/api/carrito/items")
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.mensaje").value("El catalogo de productos respondio de forma inesperada"));
+    }
+
+    @Test
+    void iniciarCheckout_DeberiaRetornar503_CuandoElBrokerFallaPorEntradaSalidaOTimeout() throws Exception {
+        when(iniciarCheckoutUseCase.execute(USUARIO_ID, null))
+                .thenThrow(new AmqpIOException(new java.io.IOException("socket cerrado")))
+                .thenThrow(new AmqpTimeoutException("timeout"));
+
+        mockMvc.perform(post("/api/carrito/checkout").with(jwtCliente())).andExpect(status().isServiceUnavailable());
+        mockMvc.perform(post("/api/carrito/checkout").with(jwtCliente())).andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
+    void iniciarCheckout_NoDeberiaPresentarComoReintentable503UnErrorDeConversion_ESeDejaPropagarComoBug() {
+        when(iniciarCheckoutUseCase.execute(USUARIO_ID, null)).thenThrow(new MessageConversionException("no se pudo convertir"));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> mockMvc.perform(post("/api/carrito/checkout").with(jwtCliente())))
+                .hasRootCauseInstanceOf(MessageConversionException.class);
     }
 
     @Test

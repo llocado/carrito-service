@@ -31,7 +31,10 @@ proyecto (decisiones de arquitectura, mapa de servicios, contrato de eventos).
 - **Idempotencia del checkout con `Idempotency-Key` (opcional).** Si el
   cliente manda un UUID en ese header, el `eventId` del evento se deriva de
   `usuario + clave`: un reintento con la misma clave no genera un segundo
-  pedido. Sin header, cada llamada es un checkout nuevo.
+  pedido. Sin header, cada llamada es un checkout nuevo. **Usa una clave nueva
+  por cada intento de checkout**: reutilizarla despues de cambiar el carrito, o
+  para reintentar tras un pago fallido, responde 202 con el `checkoutId` original
+  pero no crea un pedido nuevo.
 - **El id de usuario nunca viene del cliente.** Siempre sale del claim `sub`
   del JWT validado por Spring Security — evita que un usuario opere sobre el
   carrito de otro.

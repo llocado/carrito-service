@@ -2,11 +2,14 @@ package com.supermercado.carrito.infrastructure.rest;
 
 import com.supermercado.carrito.domain.exception.CarritoVacioException;
 import com.supermercado.carrito.domain.exception.CatalogoNoDisponibleException;
+import com.supermercado.carrito.domain.exception.CatalogoRespuestaInesperadaException;
 import com.supermercado.carrito.domain.exception.ItemNoEncontradoEnCarritoException;
 import com.supermercado.carrito.domain.exception.ProductoNoEncontradoException;
 import com.supermercado.carrito.infrastructure.rest.dto.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.AmqpException;
+import org.springframework.amqp.AmqpConnectException;
+import org.springframework.amqp.AmqpIOException;
+import org.springframework.amqp.AmqpTimeoutException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -42,9 +45,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(new ErrorResponse("El valor del parametro '" + ex.getName() + "' no es valido"));
     }
 
-    /** Broker caido o inalcanzable: el detalle va al log, no a la respuesta. */
-    @ExceptionHandler(AmqpException.class)
-    public ResponseEntity<ErrorResponse> handleBrokerNoDisponible(AmqpException ex) {
+    /**
+     * Broker caido o inalcanzable (conexion rechazada, error de E/S o timeout): el detalle va al log, no a
+     * la respuesta. Otros AmqpException (por ejemplo un error de conversion) son bugs, no cortes: se dejan
+     * llegar como 500 en vez de decirle al cliente que reintente.
+     */
+    @ExceptionHandler({AmqpConnectException.class, AmqpIOException.class, AmqpTimeoutException.class})
+    public ResponseEntity<ErrorResponse> handleBrokerNoDisponible(RuntimeException ex) {
         log.error("No se pudo publicar en RabbitMQ", ex);
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(new ErrorResponse("No se pudo iniciar el checkout en este momento. Intenta de nuevo."));
@@ -54,5 +61,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CatalogoNoDisponibleException.class)
     public ResponseEntity<ErrorResponse> handleCatalogoNoDisponible(CatalogoNoDisponibleException ex) {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(new ErrorResponse(ex.getMessage()));
+    }
+
+    /** El detalle (estado HTTP) ya lo registro ProductosServiceClient; 502 porque el fallo esta en el servicio de abajo. */
+    @ExceptionHandler(CatalogoRespuestaInesperadaException.class)
+    public ResponseEntity<ErrorResponse> handleCatalogoRespuestaInesperada(CatalogoRespuestaInesperadaException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(new ErrorResponse(ex.getMessage()));
     }
 }

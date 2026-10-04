@@ -6,6 +6,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withResourceNotFound;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import ch.qos.logback.classic.Logger;
@@ -13,6 +14,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.supermercado.carrito.application.port.CatalogoProductosPort.ProductoSnapshot;
 import com.supermercado.carrito.domain.exception.CatalogoNoDisponibleException;
+import com.supermercado.carrito.domain.exception.CatalogoRespuestaInesperadaException;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
@@ -93,5 +96,21 @@ class ProductosServiceClientTest {
         assertThatThrownBy(() -> cliente.buscarProducto(PRODUCTO_ID)).isInstanceOf(CatalogoNoDisponibleException.class);
         assertThat(logs.list).hasSize(1);
         assertThat(logs.list.get(0).getFormattedMessage()).contains("productoId=" + PRODUCTO_ID);
+    }
+
+    @Test
+    void deberiaLanzarRespuestaInesperada_NoCatalogoNoDisponible_CuandoProductosServiceRechazaConUn4xxDistintoDe404() {
+        for (HttpStatus rechazo : new HttpStatus[] {HttpStatus.BAD_REQUEST, HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN}) {
+            servidor.reset();
+            logs.list.clear();
+            servidor.expect(requestTo(URL)).andRespond(withStatus(rechazo));
+
+            assertThatThrownBy(() -> cliente.buscarProducto(PRODUCTO_ID))
+                    .isInstanceOf(CatalogoRespuestaInesperadaException.class)
+                    .isNotInstanceOf(CatalogoNoDisponibleException.class);
+
+            assertThat(logs.list).hasSize(1);
+            assertThat(logs.list.get(0).getFormattedMessage()).contains("productoId=" + PRODUCTO_ID).contains("HTTP " + rechazo.value());
+        }
     }
 }
