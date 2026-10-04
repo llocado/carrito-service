@@ -31,6 +31,8 @@ docker compose up -d      # Postgres de este servicio
 ./gradlew bootRun          # arranca en localhost:8081
 ./gradlew test             # unitarios
 ./gradlew intTest          # integración (Testcontainers, requiere Docker)
+./gradlew jacocoFullReport   # cobertura test + intTest -> build/reports/jacoco/jacocoFullReport/index.html
+./gradlew sonar              # analisis SonarQube (ver ../CLAUDE.md: requiere SONAR_TOKEN y el perfil `calidad`)
 ```
 
 Requiere `supermercado-infra` levantado (Keycloak + RabbitMQ) para validar
