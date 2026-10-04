@@ -1,0 +1,19 @@
+meta {
+  name: 12 - Checkout - sin token
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/api/carrito/checkout
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 401
+}
+
+docs {
+  Sin token no se puede iniciar un checkout: responde 401 y no publica nada.
+}

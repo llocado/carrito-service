@@ -1,0 +1,47 @@
+meta {
+  name: 13 - Iniciar Checkout
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/api/carrito/checkout
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Idempotency-Key: {{$guid}}
+}
+
+assert {
+  res.status: eq 202
+  res.body.checkoutId: isString
+}
+
+script:pre-request {
+  // Deja el carrito con un item antes de pedir el checkout (el flujo anterior
+  // termina con el carrito vacio, y un carrito vacio responde 409).
+  await bru.runRequest("Carrito/03 - Agregar Item");
+}
+
+docs {
+  Inicia el checkout: publica el evento `carrito.checkout-iniciado` en el
+  exchange `carrito.events` y responde 202 con el `checkoutId` (que es el
+  `eventId` del evento). No modifica el carrito: se vacia recien cuando el
+  pago se aprueba.
+
+  Idempotency-Key (opcional, UUID): reenviar la MISMA clave no genera un
+  segundo pedido, porque pedidos-service descarta el eventId repetido. Aqui
+  se usa {{$guid}} (clave nueva en cada envio); para probar el reintento,
+  reemplazalo por un UUID fijo y envia dos veces. Un header que no sea UUID
+  responde 400.
+
+  Como ver el efecto:
+  - Con pedidos-service corriendo, `GET /api/pedidos` (coleccion Pedidos)
+    muestra el pedido creado.
+  - En RabbitMQ (http://localhost:15672) el exchange `carrito.events`
+    muestra el mensaje publicado, y la cola
+    `pedidos.carrito-checkout-iniciado.dlq` debe seguir vacia.
+}

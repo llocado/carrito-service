@@ -2,6 +2,7 @@ package com.supermercado.carrito.infrastructure.rest;
 
 import com.supermercado.carrito.application.usecase.ActualizarCantidadItemUseCase;
 import com.supermercado.carrito.application.usecase.AgregarItemAlCarritoUseCase;
+import com.supermercado.carrito.application.usecase.IniciarCheckoutUseCase;
 import com.supermercado.carrito.application.usecase.ObtenerCarritoUseCase;
 import com.supermercado.carrito.application.usecase.ObtenerTotalCarritoUseCase;
 import com.supermercado.carrito.application.usecase.QuitarItemDelCarritoUseCase;
@@ -11,6 +12,7 @@ import com.supermercado.carrito.infrastructure.rest.dto.ActualizarCantidadReques
 import com.supermercado.carrito.infrastructure.rest.dto.AgregarItemRequest;
 import com.supermercado.carrito.infrastructure.rest.dto.CarritoDtoMapper;
 import com.supermercado.carrito.infrastructure.rest.dto.CarritoResponse;
+import com.supermercado.carrito.infrastructure.rest.dto.CheckoutResponse;
 import com.supermercado.carrito.infrastructure.rest.dto.TotalCarritoResponse;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -43,6 +46,7 @@ public class CarritoController {
     private final ActualizarCantidadItemUseCase actualizarCantidadItemUseCase;
     private final QuitarItemDelCarritoUseCase quitarItemDelCarritoUseCase;
     private final VaciarCarritoUseCase vaciarCarritoUseCase;
+    private final IniciarCheckoutUseCase iniciarCheckoutUseCase;
     private final CarritoDtoMapper carritoDtoMapper;
 
     @GetMapping
@@ -75,6 +79,19 @@ public class CarritoController {
     public ResponseEntity<CarritoResponse> quitarItem(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID productoId) {
         Carrito carrito = quitarItemDelCarritoUseCase.execute(jwt.getSubject(), productoId);
         return ResponseEntity.ok(carritoDtoMapper.toResponse(carrito));
+    }
+
+    /**
+     * 202 porque el pedido se crea de forma asincrona (pedidos-service consume
+     * el evento). La clave Idempotency-Key es opcional: con ella, reintentar
+     * la misma peticion no genera un segundo pedido.
+     */
+    @PostMapping("/checkout")
+    public ResponseEntity<CheckoutResponse> iniciarCheckout(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestHeader(value = "Idempotency-Key", required = false) UUID claveIdempotencia) {
+        UUID checkoutId = iniciarCheckoutUseCase.execute(jwt.getSubject(), claveIdempotencia);
+        return ResponseEntity.accepted().body(new CheckoutResponse(checkoutId));
     }
 
     @DeleteMapping

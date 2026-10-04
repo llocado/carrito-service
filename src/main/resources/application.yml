@@ -29,6 +29,12 @@ spring:
           # Realm de Keycloak levantado por supermercado-infra.
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/supermercado}
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:supermercado}
+    password: ${RABBITMQ_PASSWORD:supermercado}
+
 server:
   port: ${SERVER_PORT:8081}
 

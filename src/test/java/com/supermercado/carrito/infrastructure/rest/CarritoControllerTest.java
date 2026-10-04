@@ -16,10 +16,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.supermercado.carrito.application.usecase.ActualizarCantidadItemUseCase;
 import com.supermercado.carrito.application.usecase.AgregarItemAlCarritoUseCase;
+import com.supermercado.carrito.application.usecase.IniciarCheckoutUseCase;
 import com.supermercado.carrito.application.usecase.ObtenerCarritoUseCase;
 import com.supermercado.carrito.application.usecase.ObtenerTotalCarritoUseCase;
 import com.supermercado.carrito.application.usecase.QuitarItemDelCarritoUseCase;
 import com.supermercado.carrito.application.usecase.VaciarCarritoUseCase;
+import com.supermercado.carrito.domain.exception.CarritoVacioException;
 import com.supermercado.carrito.domain.exception.ItemNoEncontradoEnCarritoException;
 import com.supermercado.carrito.domain.exception.ProductoNoEncontradoException;
 import com.supermercado.carrito.domain.model.Carrito;
@@ -30,6 +32,7 @@ import com.supermercado.carrito.infrastructure.security.SecurityConfig;
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.amqp.AmqpConnectException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -82,6 +85,9 @@ class CarritoControllerTest {
 
     @MockitoBean
     private VaciarCarritoUseCase vaciarCarritoUseCase;
+
+    @MockitoBean
+    private IniciarCheckoutUseCase iniciarCheckoutUseCase;
 
     @Test
     void verCarrito_DeberiaRetornar200YElCarrito_CuandoElUsuarioEstaAutenticado() throws Exception {
@@ -202,6 +208,68 @@ class CarritoControllerTest {
 
         mockMvc.perform(delete("/api/carrito/items/{productoId}", PRODUCTO_ID).with(jwtCliente()))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void iniciarCheckout_DeberiaRetornar202YElCheckoutId_CuandoElCarritoTieneItems() throws Exception {
+        UUID checkoutId = UUID.randomUUID();
+        when(iniciarCheckoutUseCase.execute(USUARIO_ID, null)).thenReturn(checkoutId);
+
+        mockMvc.perform(post("/api/carrito/checkout").with(jwtCliente()))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.checkoutId").value(checkoutId.toString()));
+    }
+
+    @Test
+    void iniciarCheckout_DeberiaPasarLaClaveDeIdempotencia_CuandoElHeaderEsUnUuid() throws Exception {
+        UUID clave = UUID.randomUUID();
+        when(iniciarCheckoutUseCase.execute(USUARIO_ID, clave)).thenReturn(UUID.randomUUID());
+
+        mockMvc.perform(post("/api/carrito/checkout").with(jwtCliente()).header("Idempotency-Key", clave.toString()))
+                .andExpect(status().isAccepted());
+
+        verify(iniciarCheckoutUseCase).execute(USUARIO_ID, clave);
+    }
+
+    @Test
+    void iniciarCheckout_DeberiaRetornar400SinEcoDelValor_CuandoElHeaderNoEsUnUuid() throws Exception {
+        mockMvc.perform(post("/api/carrito/checkout").with(jwtCliente()).header("Idempotency-Key", "<script>x</script>"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensaje").value("El valor del parametro 'Idempotency-Key' no es valido"));
+
+        verify(iniciarCheckoutUseCase, never()).execute(any(), any());
+    }
+
+    @Test
+    void iniciarCheckout_DeberiaRetornar409_CuandoElCarritoEstaVacio() throws Exception {
+        when(iniciarCheckoutUseCase.execute(USUARIO_ID, null))
+                .thenThrow(new CarritoVacioException("El carrito esta vacio: no hay nada que comprar"));
+
+        mockMvc.perform(post("/api/carrito/checkout").with(jwtCliente()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensaje").value("El carrito esta vacio: no hay nada que comprar"));
+    }
+
+    @Test
+    void iniciarCheckout_DeberiaRetornar503SinFiltrarDetalles_CuandoRabbitMqNoEstaDisponible() throws Exception {
+        when(iniciarCheckoutUseCase.execute(USUARIO_ID, null))
+                .thenThrow(new AmqpConnectException(new RuntimeException("Connection refused: rabbit.interno:5672")));
+
+        mockMvc.perform(post("/api/carrito/checkout").with(jwtCliente()))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.mensaje").value("No se pudo iniciar el checkout en este momento. Intenta de nuevo."));
+    }
+
+    @Test
+    void iniciarCheckout_DeberiaRetornar401_CuandoNoHayToken() throws Exception {
+        mockMvc.perform(post("/api/carrito/checkout"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void iniciarCheckout_DeberiaRetornar403_CuandoElRolNoEsCliente() throws Exception {
+        mockMvc.perform(post("/api/carrito/checkout").with(jwt().jwt(j -> j.subject(USUARIO_ID))))
+                .andExpect(status().isForbidden());
     }
 
     @Test

@@ -14,6 +14,10 @@ Diseño completo del proyecto: `../app-productos/docs/ROADMAP.md`.
   ocupa `productos-service`).
 - Spring Security como OAuth2 Resource Server contra Keycloak
   (`supermercado-infra`, realm `supermercado`).
+- RabbitMQ (vía `supermercado-infra`): publica `carrito.checkout-iniciado`
+  en el exchange `carrito.events` con `POST /api/carrito/checkout` (202, 409 si
+  el carrito está vacío, header opcional `Idempotency-Key`). Contrato en
+  `docs/events/`. El checkout no modifica el carrito.
 - Llama **sincrónicamente** a `productos-service` (RestClient) para obtener
   nombre/precio al agregar un item — decisión deliberada documentada en el
   ROADMAP, no un read-model poblado por eventos.
@@ -36,7 +40,7 @@ tokens y escuchar eventos de `productos-service`.
 
 - Repo en GitHub (`llocado/carrito-service`), rama `main` con el código
   completo.
-- Última vez verificado: 42 tests unitarios + 9 de integración pasando.
+- Última vez verificado: 57 tests unitarios + 16 de integración pasando.
   Re-verificar con `./gradlew test intTest` antes de asumir que sigue así si
   pasó tiempo desde la última sesión.
 
