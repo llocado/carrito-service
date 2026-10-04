@@ -34,8 +34,8 @@ tokens y escuchar eventos de `productos-service`.
 
 ## Estado del repo (importante)
 
-- Rama `main` con el código completo commiteado localmente, **sin remoto
-  configurado** (nada pusheado).
+- Repo en GitHub (`llocado/carrito-service`), rama `main` con el código
+  completo.
 - Última vez verificado: 42 tests unitarios + 9 de integración pasando.
   Re-verificar con `./gradlew test intTest` antes de asumir que sigue así si
   pasó tiempo desde la última sesión.
