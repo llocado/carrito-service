@@ -1,0 +1,25 @@
+meta {
+  name: 15 - Limpiar - Eliminar Producto de Prueba
+  type: http
+  seq: 16
+}
+
+delete {
+  url: {{productosServiceUrl}}/api/productos/{{productoId}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 204
+}
+
+docs {
+  Limpieza: elimina de productos-service el producto creado en "01" (el
+  carrito guarda su propia copia del nombre y el precio, asi que no depende
+  de que siga existiendo). Corre al final de la coleccion.
+
+  Los pedidos creados por el checkout ("13") NO se pueden borrar por la API
+  (pedidos-service es solo de lectura a proposito): para limpiarlos usa
+  `supermercado-infra/scripts/reset-datos-dev.sh --servicio pedidos`.
+}

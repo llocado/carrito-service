@@ -16,7 +16,7 @@ headers {
 
 body:json {
   {
-    "sku": "CARRITO-DEMO-01",
+    "sku": "{{skuUnico}}",
     "nombre": "Pan Baguette",
     "descripcion": "Producto de prueba para probar el carrito",
     "precioMonto": 1200,
@@ -29,6 +29,12 @@ assert {
   res.status: eq 201
 }
 
+script:pre-request {
+  // SKU nuevo en cada ejecucion (3-20 caracteres: "CD-" + 13 digitos): repetir la coleccion no
+  // choca con el producto de ejecuciones anteriores (409 por SKU duplicado).
+  bru.setVar("skuUnico", "CD-" + Date.now());
+}
+
 script:post-response {
   if (res.body && res.body.id) {
     bru.setVar("productoId", res.body.id);
@@ -36,7 +42,8 @@ script:post-response {
 }
 
 docs {
-  Crea un producto en productos-service (debe estar corriendo en
+  Crea un producto en productos-service (con un SKU distinto en cada
+  ejecucion; el ultimo request de la coleccion lo elimina) (debe estar corriendo en
   localhost:8080) y guarda su id en la variable `productoId`, que usan las
   siguientes requests de este carrito.
 }
