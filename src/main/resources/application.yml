@@ -39,6 +39,18 @@ spring:
     password: ${RABBITMQ_PASSWORD:supermercado}
     # Con RabbitMQ inalcanzable falla en 5 s (por defecto ~60 s) en vez de dejar hilos esperando.
     connection-timeout: ${RABBITMQ_CONNECTION_TIMEOUT:5s}
+    listener:
+      simple:
+        # Un mensaje que falla NUNCA se reencola: tras los reintentos va a la DLQ.
+        default-requeue-rejected: false
+        # 1 intento original + 3 reintentos (esperas de 1s, 2s y 4s); luego va a la DLQ.
+        # Los rechazos definitivos (payload invalido) no se reintentan: ver RabbitMQConfig.
+        retry:
+          enabled: true
+          max-retries: 3
+          initial-interval: 1s
+          multiplier: 2
+          max-interval: 10s
 
 server:
   port: ${SERVER_PORT:8081}
@@ -54,6 +66,9 @@ logging:
   level:
     root: INFO
     com.supermercado: INFO
+    # Este handler escribe ~90 lineas de stack trace por cada mensaje rechazado; el listener ya registra
+    # una linea concisa con el eventId, y los fallos tras los reintentos los registra RejectAndDontRequeueRecoverer.
+    org.springframework.amqp.listener.ConditionalRejectingErrorHandler: ERROR
   pattern:
     # Agrega [requestId|correlationId] y reemplaza saltos de linea en el mensaje:
     # evita que un valor controlado por un cliente falsifique lineas de log.

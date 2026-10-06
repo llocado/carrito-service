@@ -1,3 +1,5 @@
 databaseChangeLog:
   - include:
       file: db/changelog/changes/001-crear-tablas-carrito.yaml
+  - include:
+      file: db/changelog/changes/002-crear-tabla-eventos-procesados.yaml

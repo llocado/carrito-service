@@ -110,4 +110,76 @@ class CarritoTest {
         assertThat(carrito.getItems()).isEmpty();
         assertThat(carrito.calcularTotal()).isEqualByComparingTo(BigDecimal.ZERO);
     }
+
+    private static Carrito carritoConManzanasYPeras(java.time.Instant ultimaActualizacion) {
+        ItemCarrito manzanas = ItemCarrito.de(PRODUCTO_MANZANA, "Manzana Fuji", new BigDecimal("1500"), "CLP", 5);
+        ItemCarrito peras = ItemCarrito.de(PRODUCTO_PERA, "Pera", new BigDecimal("1000"), "CLP", 2);
+        return Carrito.reconstruir(CarritoId.nuevo(), USUARIO_ID, java.util.List.of(manzanas, peras), ultimaActualizacion, ultimaActualizacion);
+    }
+
+    @Test
+    void descontarComprado_DeberiaRestarLaCantidadComprada_ConservandoLoQueSobra() {
+        java.time.Instant antes = java.time.Instant.now().minusSeconds(3600);
+        Carrito carrito = carritoConManzanasYPeras(antes);
+
+        carrito.descontarComprado(java.util.List.of(new ItemComprado(PRODUCTO_MANZANA, 3)));
+
+        assertThat(carrito.getItems()).hasSize(2);
+        assertThat(carrito.getItems()).filteredOn(i -> i.getProductoId().equals(PRODUCTO_MANZANA))
+                .singleElement().satisfies(i -> assertThat(i.getCantidad()).isEqualTo(2));
+        assertThat(carrito.getActualizadoEn()).isAfter(antes);
+    }
+
+    @Test
+    void descontarComprado_DeberiaEliminarElItem_CuandoSeCompraTodaLaCantidad() {
+        Carrito carrito = carritoConManzanasYPeras(java.time.Instant.now());
+
+        carrito.descontarComprado(java.util.List.of(new ItemComprado(PRODUCTO_PERA, 2)));
+
+        assertThat(carrito.getItems()).extracting(ItemCarrito::getProductoId).containsExactly(PRODUCTO_MANZANA);
+    }
+
+    @Test
+    void descontarComprado_DeberiaEliminarElItem_CuandoSeCompraMasDeLoQueHabia() {
+        Carrito carrito = carritoConManzanasYPeras(java.time.Instant.now());
+
+        carrito.descontarComprado(java.util.List.of(new ItemComprado(PRODUCTO_PERA, 10)));
+
+        assertThat(carrito.getItems()).extracting(ItemCarrito::getProductoId).containsExactly(PRODUCTO_MANZANA);
+    }
+
+    @Test
+    void descontarComprado_DeberiaDejarElCarritoVacio_CuandoSeCompraTodo() {
+        Carrito carrito = carritoConManzanasYPeras(java.time.Instant.now());
+
+        carrito.descontarComprado(java.util.List.of(new ItemComprado(PRODUCTO_MANZANA, 5), new ItemComprado(PRODUCTO_PERA, 2)));
+
+        assertThat(carrito.getItems()).isEmpty();
+    }
+
+    @Test
+    void descontarComprado_DeberiaIgnorarUnProductoQueYaNoEstaEnElCarrito_SinMarcarCambios() {
+        java.time.Instant antes = java.time.Instant.now().minusSeconds(3600);
+        Carrito carrito = carritoConManzanasYPeras(antes);
+
+        carrito.descontarComprado(java.util.List.of(new ItemComprado(UUID.randomUUID(), 1)));
+
+        assertThat(carrito.getItems()).hasSize(2);
+        assertThat(carrito.getActualizadoEn()).as("sin cambios no se toca actualizadoEn").isEqualTo(antes);
+    }
+
+    @Test
+    void descontarComprado_DeberiaSumarLasCantidades_CuandoElMismoProductoVieneRepetido() {
+        Carrito carrito = carritoConManzanasYPeras(java.time.Instant.now());
+
+        carrito.descontarComprado(java.util.List.of(new ItemComprado(PRODUCTO_MANZANA, 1), new ItemComprado(PRODUCTO_MANZANA, 2)));
+
+        assertThat(carrito.getItems()).filteredOn(i -> i.getProductoId().equals(PRODUCTO_MANZANA))
+                .singleElement().satisfies(i -> assertThat(i.getCantidad()).isEqualTo(2));
+    }
+
+    @Test
+    void descontarComprado_DeberiaFallar_CuandoLaListaEsNula() {
+        assertThatThrownBy(() -> Carrito.crear(USUARIO_ID).descontarComprado(null)).isInstanceOf(NullPointerException.class);
+    }
 }

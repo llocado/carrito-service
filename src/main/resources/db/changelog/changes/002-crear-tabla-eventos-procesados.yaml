@@ -1,0 +1,20 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-crear-tabla-eventos-procesados
+      author: supermercado
+      changes:
+        - createTable:
+            tableName: eventos_procesados
+            columns:
+              - column:
+                  name: event_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_eventos_procesados
+                    nullable: false
+              - column:
+                  name: procesado_en
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false

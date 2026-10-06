@@ -28,6 +28,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +52,9 @@ import tools.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @Testcontainers
 @Transactional
+// Esta suite no levanta RabbitMQ: el listener no arranca y el puerto invalido garantiza que, pase lo que pase,
+// nunca se conecte al RabbitMQ de desarrollo (declararia colas ni consumiria eventos reales).
+@TestPropertySource(properties = {"spring.rabbitmq.listener.simple.auto-startup=false", "spring.rabbitmq.port=1"})
 class CarritoIntegrationTest {
 
     private static final String USUARIO_ID = "usuario-integ-123";

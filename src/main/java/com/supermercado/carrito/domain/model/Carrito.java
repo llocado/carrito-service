@@ -75,6 +75,32 @@ public class Carrito {
         marcarActualizado();
     }
 
+    /**
+     * Descuenta lo que se pago: resta la cantidad comprada de cada producto y elimina el item si llega a cero.
+     * Lo que el usuario agrego despues del checkout se conserva; un producto que ya no esta se ignora.
+     * Solo se marca el carrito como actualizado si algo cambio de verdad.
+     */
+    public void descontarComprado(List<ItemComprado> comprados) {
+        Objects.requireNonNull(comprados, "Los items comprados no pueden ser nulos");
+        boolean huboCambios = false;
+        for (ItemComprado comprado : comprados) {
+            Optional<ItemCarrito> enCarrito = buscarItem(comprado.productoId());
+            if (enCarrito.isEmpty()) {
+                continue;
+            }
+            int restante = enCarrito.get().getCantidad() - comprado.cantidad();
+            if (restante > 0) {
+                reemplazarItem(enCarrito.get().conCantidad(restante));
+            } else {
+                items.removeIf(item -> item.getProductoId().equals(comprado.productoId()));
+            }
+            huboCambios = true;
+        }
+        if (huboCambios) {
+            marcarActualizado();
+        }
+    }
+
     public BigDecimal calcularTotal() {
         return items.stream()
                 .map(ItemCarrito::getSubtotal)

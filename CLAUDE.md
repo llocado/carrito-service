@@ -51,6 +51,8 @@ tokens y escuchar eventos de `productos-service`.
 
 - Valida el token de Keycloak directamente (no hay API Gateway todavía —
   ver ROADMAP, sección "Gateway: por qué se pospone").
-- Escucha eventos de `productos-service` (cambios de precio/disponibilidad)
-  y, más adelante, el evento de pago aprobado para vaciarse (política de
-  vaciado ya decidida en el ROADMAP).
+- Escucha `pago.aprobado` de `pagos-service` (cola `carrito.pago-aprobado` +
+  DLQ) y **descuenta del carrito solo lo comprado** (`Carrito.descontarComprado`),
+  no lo vacía: lo agregado después del checkout se conserva. Idempotente por
+  `eventId` (`eventos_procesados`). Politica de errores como en pedidos:
+  payload inválido => DLQ; fallo transitorio => 1 intento + 3 reintentos.

@@ -19,8 +19,14 @@ proyecto (decisiones de arquitectura, mapa de servicios, contrato de eventos).
   RabbitMQ para esto: `productos-service` no publica eventos de creación
   retroactivos, así que un read-model 100% event-driven partiría "ciego" a
   cualquier producto creado antes de que existiera el listener. RabbitMQ
-  se usa para publicar `carrito.checkout-iniciado` (ver más abajo) y quedará
-  para vaciar el carrito cuando `pagos-service` confirme un pago.
+  se usa para publicar `carrito.checkout-iniciado` (ver más abajo) y para
+  escuchar `pago.aprobado` de `pagos-service` (ver el siguiente punto).
+- **Al aprobarse el pago se descuenta solo lo comprado, no se vacía el carrito.**
+  `pago.aprobado` lleva los ítems y cantidades pagados; el carrito resta esas
+  cantidades (y elimina el ítem si llega a cero), de modo que lo que el usuario
+  agregó después del checkout se conserva. Es idempotente por `eventId`
+  (tabla `eventos_procesados`): una reentrega no vuelve a descontar. Afina la
+  decisión del ROADMAP ("se vacía"), que borraba también lo agregado después.
 - **`carrito-service` no importa el dominio de `productos-service`.** Su
   propio modelo (`Carrito`, `ItemCarrito`) es una representación mínima
   propia — duplicación intencional, no un descuido (ver ROADMAP.md).
