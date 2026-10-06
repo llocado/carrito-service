@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-agregar-version-a-carritos
+      author: supermercado
+      changes:
+        # Bloqueo optimista: dos escritores concurrentes sobre el mismo carrito (por ejemplo, el listener de
+        # pago.aprobado y una peticion REST) ya no se pisan en silencio; el segundo en confirmar falla.
+        - addColumn:
+            tableName: carritos
+            columns:
+              - column:
+                  name: version
+                  type: bigint
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false

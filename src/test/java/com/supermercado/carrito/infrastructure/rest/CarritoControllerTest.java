@@ -232,6 +232,21 @@ class CarritoControllerTest {
     }
 
     @Test
+    void agregarItem_DeberiaRetornar409ConMensajeFijo_CuandoOtroProcesoModificoElCarritoALaVez() throws Exception {
+        AgregarItemRequest request = new AgregarItemRequest(PRODUCTO_ID, 1);
+        when(agregarItemAlCarritoUseCase.execute(USUARIO_ID, PRODUCTO_ID, 1))
+                .thenThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException(
+                        "com.supermercado.carrito.infrastructure.persistence.entity.CarritoEntity", UUID.randomUUID()));
+
+        mockMvc.perform(post("/api/carrito/items")
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensaje").value("El carrito cambio mientras se procesaba tu peticion. Intenta de nuevo."));
+    }
+
+    @Test
     void actualizarCantidad_DeberiaRetornar200_CuandoElItemExiste() throws Exception {
         ActualizarCantidadRequest request = new ActualizarCantidadRequest(5);
         when(actualizarCantidadItemUseCase.execute(USUARIO_ID, PRODUCTO_ID, 5)).thenReturn(Carrito.crear(USUARIO_ID));

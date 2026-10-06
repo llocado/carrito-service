@@ -77,6 +77,12 @@ realm `supermercado` de Keycloak).
 
 El contrato del evento está en `docs/events/`.
 
+**Concurrencia.** El carrito usa bloqueo optimista (`carritos.version`, Liquibase 003): si dos
+operaciones lo modifican a la vez (por ejemplo, el descuento por un `pago.aprobado` y una petición
+REST del usuario), la segunda en confirmar no pisa a la primera. Los endpoints que modifican el
+carrito responden `409` ("El carrito cambió mientras se procesaba tu petición") y el cliente puede
+reintentar; el listener de `pago.aprobado` reintenta solo (1 + 3 veces).
+
 ## Tests
 
 ```bash

@@ -4,6 +4,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Version;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.Instant;
@@ -23,6 +24,15 @@ public class CarritoEntity {
 
     @Id
     private UUID id;
+
+    /**
+     * Bloqueo optimista: el UPDATE lleva "where version = ?". Si otra transaccion modifico el carrito despues de
+     * que esta lo leyo, falla con OptimisticLockingFailureException en vez de pisar el cambio. Es Long (no long)
+     * para que Spring Data trate una entidad con version nula como nueva y use persist, no merge.
+     */
+    @Version
+    @Column(nullable = false)
+    private Long version;
 
     @Column(name = "usuario_id", nullable = false, unique = true, length = 100)
     private String usuarioId;

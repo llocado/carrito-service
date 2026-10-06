@@ -38,4 +38,10 @@ class RabbitMQConfigTest {
     void noDeberiaReintentar_UnMensajeQueNoSePuedeConvertir() {
         assertThat(seReintenta.test(new RuntimeException("falla", new MessageConversionException("json roto")))).isFalse();
     }
+
+    @Test
+    void deberiaReintentar_UnConflictoDeConcurrenciaAlGuardarElCarrito() {
+        // El listener de pago.aprobado perdio la carrera contra otra escritura: al reintentar lee el carrito nuevo.
+        assertThat(seReintenta.test(new org.springframework.orm.ObjectOptimisticLockingFailureException("CarritoEntity", "id"))).isTrue();
+    }
 }

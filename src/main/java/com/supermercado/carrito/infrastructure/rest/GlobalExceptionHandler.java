@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpConnectException;
 import org.springframework.amqp.AmqpIOException;
 import org.springframework.amqp.AmqpTimeoutException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -67,5 +68,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CatalogoRespuestaInesperadaException.class)
     public ResponseEntity<ErrorResponse> handleCatalogoRespuestaInesperada(CatalogoRespuestaInesperadaException ex) {
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(new ErrorResponse(ex.getMessage()));
+    }
+
+    /**
+     * Otro proceso (por ejemplo, el descuento por un pago aprobado) modifico el carrito mientras se procesaba esta
+     * peticion: ninguno de los dos cambios se pierde en silencio y el cliente puede reintentar con el estado nuevo.
+     */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleConflictoDeConcurrencia(OptimisticLockingFailureException ex) {
+        log.info("Conflicto de concurrencia al guardar el carrito: {}", ex.getClass().getSimpleName());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("El carrito cambio mientras se procesaba tu peticion. Intenta de nuevo."));
     }
 }

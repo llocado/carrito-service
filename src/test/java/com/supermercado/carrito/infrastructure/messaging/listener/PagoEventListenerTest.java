@@ -88,7 +88,8 @@ class PagoEventListenerTest {
 
     @Test
     void deberiaRechazar_CuandoUnCampoTieneElTipoIncorrecto() {
-        assertRechazado(objectMapper.readTree("{\"pagoId\":\"no-es-uuid\",\"usuarioId\":\"u1\",\"items\":[]}"));
+        // Items validos: asi lo unico invalido es el tipo de pagoId y el test no pasa por la regla "sin items".
+        assertRechazado(objectMapper.readTree("{\"pagoId\":\"no-es-uuid\",\"usuarioId\":\"u1\",\"items\":[" + ITEM + "]}"));
     }
 
     @Test

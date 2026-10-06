@@ -56,3 +56,10 @@ tokens y escuchar eventos de `productos-service`.
   no lo vacía: lo agregado después del checkout se conserva. Idempotente por
   `eventId` (`eventos_procesados`). Politica de errores como en pedidos:
   payload inválido => DLQ; fallo transitorio => 1 intento + 3 reintentos.
+- **Bloqueo optimista en `CarritoEntity` (`@Version`, columna `carritos.version`).** Toda
+  escritura del carrito es "leer, modificar en memoria, volcar completo": sin versión, el
+  descuento asíncrono por `pago.aprobado` podía borrar en silencio lo que el usuario agregaba
+  al mismo tiempo. Un conflicto da `409` por REST y reintento en el listener. Todo caso de uso
+  que escriba el carrito debe ser `@Transactional` (la versión se lee al inicio de la transacción).
+  Probado con dos transacciones reales (`CarritoConcurrenciaIntegrationTest`) y con peticiones
+  HTTP simultáneas.
