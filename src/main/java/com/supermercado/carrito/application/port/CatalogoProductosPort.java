@@ -16,6 +16,11 @@ public interface CatalogoProductosPort {
 
     Optional<ProductoSnapshot> buscarProducto(UUID productoId);
 
-    record ProductoSnapshot(UUID productoId, String nombre, java.math.BigDecimal precioMonto, String moneda) {
+    /** stock y activo se usan para avisar temprano si no alcanza; un producto inactivo cuenta como cero disponibles. */
+    record ProductoSnapshot(UUID productoId, String nombre, java.math.BigDecimal precioMonto, String moneda, int stock, boolean activo) {
+
+        public int disponible() {
+            return activo ? stock : 0;
+        }
     }
 }

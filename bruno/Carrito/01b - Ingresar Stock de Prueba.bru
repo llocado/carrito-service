@@ -1,0 +1,35 @@
+meta {
+  name: 01b - Ingresar Stock de Prueba
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{productosServiceUrl}}/api/productos/{{productoId}}/stock/ingresos
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "unidades": 100
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.stock: eq 100
+}
+
+docs {
+  Un producto recien creado tiene stock 0 y carrito-service no deja agregar mas unidades de las que hay (422 "Stock
+  insuficiente"). Este paso carga 100 unidades al producto de prueba creado en "01 - Crear Producto de Prueba" para
+  que las requests siguientes puedan agregarlo, actualizar su cantidad y hacer el checkout.
+
+  Es una llamada a productos-service (no a carrito), por eso usa `productosServiceUrl`. Como el producto es nuevo en
+  cada corrida, el stock queda siempre en 100.
+}

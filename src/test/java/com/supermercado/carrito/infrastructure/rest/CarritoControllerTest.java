@@ -26,6 +26,7 @@ import com.supermercado.carrito.domain.exception.CatalogoNoDisponibleException;
 import com.supermercado.carrito.domain.exception.CatalogoRespuestaInesperadaException;
 import com.supermercado.carrito.domain.exception.ItemNoEncontradoEnCarritoException;
 import com.supermercado.carrito.domain.exception.ProductoNoEncontradoException;
+import com.supermercado.carrito.domain.exception.StockInsuficienteException;
 import com.supermercado.carrito.domain.model.Carrito;
 import com.supermercado.carrito.infrastructure.rest.dto.ActualizarCantidadRequest;
 import com.supermercado.carrito.infrastructure.rest.dto.AgregarItemRequest;
@@ -166,6 +167,32 @@ class CarritoControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(agregarItemAlCarritoUseCase, never()).execute(any(), any(), anyInt());
+    }
+
+    @Test
+    void agregarItem_DeberiaRetornar422ConElMensajeDeStock_CuandoNoHayStockSuficiente() throws Exception {
+        AgregarItemRequest request = new AgregarItemRequest(PRODUCTO_ID, 9);
+        when(agregarItemAlCarritoUseCase.execute(eq(USUARIO_ID), eq(PRODUCTO_ID), eq(9)))
+                .thenThrow(new StockInsuficienteException(PRODUCTO_ID, "Manzana Fuji", 5));
+
+        mockMvc.perform(post("/api/carrito/items")
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensaje").value("Stock insuficiente de 'Manzana Fuji': hay 5 disponible(s)"));
+    }
+
+    @Test
+    void actualizarCantidad_DeberiaRetornar422_CuandoSubirLaCantidadSuperaElStock() throws Exception {
+        when(actualizarCantidadItemUseCase.execute(eq(USUARIO_ID), eq(PRODUCTO_ID), eq(50)))
+                .thenThrow(new StockInsuficienteException(PRODUCTO_ID, "Manzana Fuji", 5));
+
+        mockMvc.perform(put("/api/carrito/items/{productoId}", PRODUCTO_ID)
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ActualizarCantidadRequest(50))))
+                .andExpect(status().isUnprocessableEntity());
     }
 
     @Test

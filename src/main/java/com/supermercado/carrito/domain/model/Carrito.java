@@ -101,6 +101,11 @@ public class Carrito {
         }
     }
 
+    /** Unidades de un producto que ya estan en el carrito (0 si no esta). */
+    public int cantidadDe(UUID productoId) {
+        return buscarItem(productoId).map(ItemCarrito::getCantidad).orElse(0);
+    }
+
     public BigDecimal calcularTotal() {
         return items.stream()
                 .map(ItemCarrito::getSubtotal)

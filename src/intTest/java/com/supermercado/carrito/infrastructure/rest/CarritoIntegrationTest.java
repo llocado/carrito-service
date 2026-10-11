@@ -81,7 +81,7 @@ class CarritoIntegrationTest {
 
     @Test
     void agregarItem_DeberiaRetornar200YPersistirEnPostgres_CuandoElProductoExiste() throws Exception {
-        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP");
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 100, true);
         when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
 
         AgregarItemRequest request = new AgregarItemRequest(PRODUCTO_ID, 2);
@@ -155,7 +155,7 @@ class CarritoIntegrationTest {
 
     @Test
     void actualizarCantidadYQuitarItem_DeberianReflejarseEnPostgres() throws Exception {
-        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP");
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 100, true);
         when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
         carritoRepositoryPort.guardar(carritoConUnItem());
 
@@ -189,6 +189,40 @@ class CarritoIntegrationTest {
         Optional<Carrito> guardado = carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID);
         assertThat(guardado).isPresent();
         assertThat(guardado.get().getItems()).isEmpty();
+    }
+
+    @Test
+    void agregarItem_DeberiaRetornar422YNoPersistirNada_CuandoNoHayStockSuficiente() throws Exception {
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 3, true);
+        when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
+
+        mockMvc.perform(post("/api/carrito/items")
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new AgregarItemRequest(PRODUCTO_ID, 4))))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensaje").value("Stock insuficiente de 'Manzana Fuji': hay 3 disponible(s)"));
+
+        assertThat(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID)).isEmpty();
+    }
+
+    @Test
+    void actualizarCantidad_DeberiaRetornar422_CuandoSubirLaCantidadSuperaElStock_YPermitirBajarla() throws Exception {
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 4, true);
+        when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
+        carritoRepositoryPort.guardar(carritoConUnItem()); // 2 unidades
+
+        mockMvc.perform(put("/api/carrito/items/{productoId}", PRODUCTO_ID)
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ActualizarCantidadRequest(5))))
+                .andExpect(status().isUnprocessableEntity());
+        mockMvc.perform(put("/api/carrito/items/{productoId}", PRODUCTO_ID)
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ActualizarCantidadRequest(1))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].cantidad").value(1));
     }
 
     private static Carrito carritoConUnItem() {

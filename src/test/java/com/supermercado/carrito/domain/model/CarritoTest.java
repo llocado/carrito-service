@@ -182,4 +182,13 @@ class CarritoTest {
     void descontarComprado_DeberiaFallar_CuandoLaListaEsNula() {
         assertThatThrownBy(() -> Carrito.crear(USUARIO_ID).descontarComprado(null)).isInstanceOf(NullPointerException.class);
     }
+
+    @Test
+    void cantidadDe_DeberiaDevolverLasUnidadesDelProducto_OCeroSiNoEsta() {
+        Carrito carrito = Carrito.crear(USUARIO_ID);
+        carrito.agregarItem(PRODUCTO_MANZANA, "Manzana", new BigDecimal("1500"), "CLP", 3);
+
+        assertThat(carrito.cantidadDe(PRODUCTO_MANZANA)).isEqualTo(3);
+        assertThat(carrito.cantidadDe(UUID.randomUUID())).isZero();
+    }
 }

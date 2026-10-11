@@ -5,6 +5,7 @@ import com.supermercado.carrito.domain.exception.CatalogoNoDisponibleException;
 import com.supermercado.carrito.domain.exception.CatalogoRespuestaInesperadaException;
 import com.supermercado.carrito.domain.exception.ItemNoEncontradoEnCarritoException;
 import com.supermercado.carrito.domain.exception.ProductoNoEncontradoException;
+import com.supermercado.carrito.domain.exception.StockInsuficienteException;
 import com.supermercado.carrito.infrastructure.rest.dto.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpConnectException;
@@ -31,6 +32,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleItemNoEncontrado(ItemNoEncontradoEnCarritoException ex) {
         log.info("Item no encontrado en el carrito: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(ex.getMessage()));
+    }
+
+    /** 422 como en productos-service. El mensaje solo lleva el nombre del producto y las unidades disponibles. */
+    @ExceptionHandler(StockInsuficienteException.class)
+    public ResponseEntity<ErrorResponse> handleStockInsuficiente(StockInsuficienteException ex) {
+        log.info("Cantidad rechazada por stock insuficiente productoId={} disponible={}", ex.getProductoId(), ex.getDisponible());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(new ErrorResponse(ex.getMessage()));
     }
 
     @ExceptionHandler(CarritoVacioException.class)

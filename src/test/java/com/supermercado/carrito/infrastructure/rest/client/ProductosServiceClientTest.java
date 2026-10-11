@@ -65,6 +65,18 @@ class ProductosServiceClientTest {
 
         assertThat(resultado).isPresent();
         assertThat(resultado.get().nombre()).isEqualTo("Pan");
+        assertThat(resultado.get().stock()).isEqualTo(5);
+        assertThat(resultado.get().activo()).isTrue();
+        assertThat(resultado.get().disponible()).isEqualTo(5);
+    }
+
+    @Test
+    void deberiaContarCeroDisponibles_CuandoProductosServiceDiceQueElProductoEstaInactivo() {
+        servidor.expect(requestTo(URL)).andRespond(withSuccess("""
+                {"id":"%s","sku":"S1","nombre":"Pan","descripcion":"d","precioMonto":1200,"moneda":"CLP",
+                 "stock":5,"categoriaId":"c","activo":false}""".formatted(PRODUCTO_ID), MediaType.APPLICATION_JSON));
+
+        assertThat(cliente.buscarProducto(PRODUCTO_ID).orElseThrow().disponible()).isZero();
     }
 
     @Test

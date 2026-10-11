@@ -56,6 +56,10 @@ tokens y escuchar eventos de `productos-service`.
   no lo vacía: lo agregado después del checkout se conserva. Idempotente por
   `eventId` (`eventos_procesados`). Politica de errores como en pedidos:
   payload inválido => DLQ; fallo transitorio => 1 intento + 3 reintentos.
+- **Stock como aviso temprano.** `AgregarItemAlCarritoUseCase` rechaza (422, `StockInsuficienteException`) si
+  `cantidad ya en el carrito + nueva > disponible`; `ActualizarCantidadItemUseCase` solo consulta el catálogo cuando
+  la cantidad SUBE. `ProductoSnapshot.disponible()` vale 0 si el producto está inactivo. No reserva nada: la
+  garantía es el descuento al pagar (`app-productos`).
 - **Bloqueo optimista en `CarritoEntity` (`@Version`, columna `carritos.version`).** Toda
   escritura del carrito es "leer, modificar en memoria, volcar completo": sin versión, el
   descuento asíncrono por `pago.aprobado` podía borrar en silencio lo que el usuario agregaba

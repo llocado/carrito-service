@@ -10,6 +10,7 @@ import com.supermercado.carrito.application.port.CarritoRepositoryPort;
 import com.supermercado.carrito.application.port.CatalogoProductosPort;
 import com.supermercado.carrito.application.port.CatalogoProductosPort.ProductoSnapshot;
 import com.supermercado.carrito.domain.exception.ProductoNoEncontradoException;
+import com.supermercado.carrito.domain.exception.StockInsuficienteException;
 import com.supermercado.carrito.domain.model.Carrito;
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -41,7 +42,7 @@ class AgregarItemAlCarritoUseCaseTest {
 
     @Test
     void execute_DeberiaCrearCarritoYAgregarItem_CuandoElUsuarioNoTeniaCarritoTodavia() {
-        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP");
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 100, true);
         when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
         when(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
         when(carritoRepositoryPort.guardar(any(Carrito.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -58,7 +59,7 @@ class AgregarItemAlCarritoUseCaseTest {
         Carrito carritoExistente = Carrito.crear(USUARIO_ID);
         carritoExistente.agregarItem(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 2);
 
-        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP");
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 100, true);
         when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
         when(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID)).thenReturn(Optional.of(carritoExistente));
         when(carritoRepositoryPort.guardar(any(Carrito.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -77,5 +78,57 @@ class AgregarItemAlCarritoUseCaseTest {
                 .isInstanceOf(ProductoNoEncontradoException.class);
 
         verify(carritoRepositoryPort, org.mockito.Mockito.never()).guardar(any(Carrito.class));
+    }
+
+    @Test
+    void execute_DeberiaAceptarLaCantidadIgualAlStock_YRechazarUnaUnidadMas() {
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 5, true);
+        when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
+        when(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+        when(carritoRepositoryPort.guardar(any(Carrito.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertThat(agregarItemAlCarritoUseCase.execute(USUARIO_ID, PRODUCTO_ID, 5).getItems().get(0).getCantidad()).isEqualTo(5);
+
+        assertThatThrownBy(() -> agregarItemAlCarritoUseCase.execute(USUARIO_ID, PRODUCTO_ID, 6))
+                .isInstanceOf(StockInsuficienteException.class)
+                .hasMessageContaining("hay 5 disponible");
+    }
+
+    @Test
+    void execute_DeberiaContarLoQueYaHayEnElCarrito_AlValidarElStock() {
+        Carrito carritoExistente = Carrito.crear(USUARIO_ID);
+        carritoExistente.agregarItem(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 4);
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 5, true);
+        when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
+        when(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID)).thenReturn(Optional.of(carritoExistente));
+
+        // 4 en el carrito + 2 = 6 > 5 disponibles
+        assertThatThrownBy(() -> agregarItemAlCarritoUseCase.execute(USUARIO_ID, PRODUCTO_ID, 2))
+                .isInstanceOf(StockInsuficienteException.class);
+
+        assertThat(carritoExistente.cantidadDe(PRODUCTO_ID)).as("no se modifica el carrito").isEqualTo(4);
+        verify(carritoRepositoryPort, org.mockito.Mockito.never()).guardar(any(Carrito.class));
+    }
+
+    @Test
+    void execute_DeberiaRechazar_CuandoElProductoNoTieneStock() {
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 0, true);
+        when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
+        when(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> agregarItemAlCarritoUseCase.execute(USUARIO_ID, PRODUCTO_ID, 1))
+                .isInstanceOf(StockInsuficienteException.class)
+                .hasMessageContaining("hay 0 disponible");
+    }
+
+    @Test
+    void execute_DeberiaRechazarConCeroDisponibles_CuandoElProductoEstaInactivoAunqueTengaStock() {
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 50, false);
+        when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
+        when(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> agregarItemAlCarritoUseCase.execute(USUARIO_ID, PRODUCTO_ID, 1))
+                .isInstanceOf(StockInsuficienteException.class)
+                .hasMessageContaining("hay 0 disponible");
     }
 }

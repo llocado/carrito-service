@@ -4,6 +4,7 @@ import com.supermercado.carrito.application.port.CarritoRepositoryPort;
 import com.supermercado.carrito.application.port.CatalogoProductosPort;
 import com.supermercado.carrito.application.port.CatalogoProductosPort.ProductoSnapshot;
 import com.supermercado.carrito.domain.exception.ProductoNoEncontradoException;
+import com.supermercado.carrito.domain.exception.StockInsuficienteException;
 import com.supermercado.carrito.domain.model.Carrito;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class AgregarItemAlCarritoUseCase {
 
     /**
      * @throws ProductoNoEncontradoException si productos-service no reconoce el producto.
+     * @throws StockInsuficienteException si la cantidad total en el carrito superaria el stock disponible.
      */
     @Transactional
     public Carrito execute(String usuarioId, UUID productoId, int cantidad) {
@@ -32,6 +34,10 @@ public class AgregarItemAlCarritoUseCase {
         Carrito carrito = carritoRepositoryPort.buscarPorUsuarioId(usuarioId)
                 .orElseGet(() -> Carrito.crear(usuarioId));
 
+        // Lo que ya hay en el carrito cuenta: agregar 2 a un item que tiene 4 pide 6 unidades en total.
+        if (carrito.cantidadDe(productoId) + cantidad > producto.disponible()) {
+            throw new StockInsuficienteException(productoId, producto.nombre(), producto.disponible());
+        }
         carrito.agregarItem(producto.productoId(), producto.nombre(), producto.precioMonto(), producto.moneda(), cantidad);
 
         Carrito guardado = carritoRepositoryPort.guardar(carrito);

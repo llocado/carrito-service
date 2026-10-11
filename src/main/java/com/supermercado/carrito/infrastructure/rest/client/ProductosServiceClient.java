@@ -37,7 +37,7 @@ public class ProductosServiceClient implements CatalogoProductosPort {
             if (response == null) {
                 return Optional.empty();
             }
-            return Optional.of(new ProductoSnapshot(productoId, response.nombre(), response.precioMonto(), response.moneda()));
+            return Optional.of(new ProductoSnapshot(productoId, response.nombre(), response.precioMonto(), response.moneda(), response.stock(), response.activo()));
         } catch (HttpClientErrorException.NotFound e) {
             return Optional.empty();
         } catch (HttpClientErrorException e) {
