@@ -7,10 +7,13 @@ import com.supermercado.carrito.domain.exception.ItemNoEncontradoEnCarritoExcept
 import com.supermercado.carrito.domain.exception.ProductoNoEncontradoException;
 import com.supermercado.carrito.domain.exception.StockInsuficienteException;
 import com.supermercado.carrito.infrastructure.rest.dto.ErrorResponse;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpConnectException;
 import org.springframework.amqp.AmqpIOException;
 import org.springframework.amqp.AmqpTimeoutException;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +24,12 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    /**
+     * Unicas que pierde una peticion que compite con otra identica: el INSERT del item (o del carrito, si es el
+     * primero del usuario) choca antes de que el bloqueo optimista llegue a comparar versiones.
+     */
+    private static final Set<String> CONSTRAINTS_DE_CARRERA = Set.of("uk_items_carrito_carrito_producto", "uk_carritos_usuario_id");
 
     @ExceptionHandler(ProductoNoEncontradoException.class)
     public ResponseEntity<ErrorResponse> handleProductoNoEncontrado(ProductoNoEncontradoException ex) {
@@ -85,6 +94,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<ErrorResponse> handleConflictoDeConcurrencia(OptimisticLockingFailureException ex) {
         log.info("Conflicto de concurrencia al guardar el carrito: {}", ex.getClass().getSimpleName());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("El carrito cambio mientras se procesaba tu peticion. Intenta de nuevo."));
+    }
+
+    /**
+     * Dos peticiones simultaneas crearon lo mismo (mismo producto en el carrito, o el primer carrito del usuario): la que
+     * pierde recibe 409 para reintentar, igual que en el conflicto de version. Cualquier otra violacion de integridad
+     * es un defecto: se relanza para que quede como 500 con su traza.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleCarreraDeCreacion(DataIntegrityViolationException ex) {
+        if (!(ex.getCause() instanceof ConstraintViolationException violacion)
+                || !CONSTRAINTS_DE_CARRERA.contains(violacion.getConstraintName())) {
+            throw ex;
+        }
+        log.info("Conflicto de concurrencia al crear en el carrito: constraint={}", violacion.getConstraintName());
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse("El carrito cambio mientras se procesaba tu peticion. Intenta de nuevo."));
     }
