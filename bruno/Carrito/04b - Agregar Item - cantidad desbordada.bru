@@ -1,0 +1,32 @@
+meta {
+  name: 04b - Agregar Item - cantidad desbordada
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/carrito/items
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "productoId": "{{productoId}}",
+    "cantidad": 2147483647
+  }
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  Corre "03" antes (el item ya esta en el carrito). Sumar 2147483647 a lo que ya hay desbordaba int:
+  pasaba el chequeo de stock y respondia 500. Ahora responde 422 (stock insuficiente) y no toca el carrito.
+}

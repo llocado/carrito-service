@@ -35,7 +35,8 @@ public class AgregarItemAlCarritoUseCase {
                 .orElseGet(() -> Carrito.crear(usuarioId));
 
         // Lo que ya hay en el carrito cuenta: agregar 2 a un item que tiene 4 pide 6 unidades en total.
-        if (carrito.cantidadDe(productoId) + cantidad > producto.disponible()) {
+        // La suma va en long: con int, cantidad = Integer.MAX_VALUE desbordaba a negativo, pasaba el chequeo y fallaba con 500.
+        if ((long) carrito.cantidadDe(productoId) + cantidad > producto.disponible()) {
             throw new StockInsuficienteException(productoId, producto.nombre(), producto.disponible());
         }
         carrito.agregarItem(producto.productoId(), producto.nombre(), producto.precioMonto(), producto.moneda(), cantidad);

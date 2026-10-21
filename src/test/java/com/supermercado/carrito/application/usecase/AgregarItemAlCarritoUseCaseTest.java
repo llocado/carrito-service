@@ -111,6 +111,22 @@ class AgregarItemAlCarritoUseCaseTest {
     }
 
     @Test
+    void execute_DeberiaRechazarSinDesbordar_CuandoLaSumaConLoQueYaHayExcedeElRangoDeInt() {
+        Carrito carritoExistente = Carrito.crear(USUARIO_ID);
+        carritoExistente.agregarItem(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 2);
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 100, true);
+        when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
+        when(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID)).thenReturn(Optional.of(carritoExistente));
+
+        // 2 + Integer.MAX_VALUE desborda int a negativo: antes pasaba el chequeo y terminaba en 500
+        assertThatThrownBy(() -> agregarItemAlCarritoUseCase.execute(USUARIO_ID, PRODUCTO_ID, Integer.MAX_VALUE))
+                .isInstanceOf(StockInsuficienteException.class);
+
+        assertThat(carritoExistente.cantidadDe(PRODUCTO_ID)).as("no se modifica el carrito").isEqualTo(2);
+        verify(carritoRepositoryPort, org.mockito.Mockito.never()).guardar(any(Carrito.class));
+    }
+
+    @Test
     void execute_DeberiaRechazar_CuandoElProductoNoTieneStock() {
         ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 0, true);
         when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));

@@ -207,6 +207,26 @@ class CarritoIntegrationTest {
     }
 
     @Test
+    void agregarItem_DeberiaRetornar422_CuandoLaSumaConLoQueYaHayDesbordaInt() throws Exception {
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 100, true);
+        when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
+
+        mockMvc.perform(post("/api/carrito/items")
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new AgregarItemRequest(PRODUCTO_ID, 2))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/carrito/items")
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new AgregarItemRequest(PRODUCTO_ID, Integer.MAX_VALUE))))
+                .andExpect(status().isUnprocessableEntity());
+
+        assertThat(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID).orElseThrow().cantidadDe(PRODUCTO_ID)).isEqualTo(2);
+    }
+
+    @Test
     void actualizarCantidad_DeberiaRetornar422_CuandoSubirLaCantidadSuperaElStock_YPermitirBajarla() throws Exception {
         ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 4, true);
         when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
