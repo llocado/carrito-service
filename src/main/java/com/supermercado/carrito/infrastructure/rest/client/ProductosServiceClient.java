@@ -42,14 +42,14 @@ public class ProductosServiceClient implements CatalogoProductosPort {
             return Optional.empty();
         } catch (HttpClientErrorException e) {
             // 4xx distinto de 404 (ya capturado arriba): no es una caida, es un rechazo que reintentar no arregla.
-            log.error("productos-service rechazo la consulta productoId={} causa=HTTP {}", productoId, e.getStatusCode().value());
+            log.warn("productos-service rechazo la consulta productoId={} causa=HTTP {}", productoId, e.getStatusCode().value());
             throw new CatalogoRespuestaInesperadaException("El catalogo de productos respondio de forma inesperada", e);
         } catch (RestClientException e) {
             // Solo el estado HTTP: el cuerpo de error de otro servicio no se vuelca al log.
             String causa = e instanceof RestClientResponseException r
                     ? "HTTP " + r.getStatusCode().value()
                     : e.getClass().getSimpleName() + ": " + e.getMessage();
-            log.error("productos-service no disponible o con error productoId={} causa={}", productoId, causa);
+            log.warn("productos-service no disponible o con error productoId={} causa={}", productoId, causa);
             throw new CatalogoNoDisponibleException("El catalogo de productos no esta disponible en este momento", e);
         }
     }

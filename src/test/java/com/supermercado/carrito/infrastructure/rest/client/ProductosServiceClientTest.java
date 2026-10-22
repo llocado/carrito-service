@@ -9,6 +9,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -94,6 +95,7 @@ class ProductosServiceClientTest {
         assertThatThrownBy(() -> cliente.buscarProducto(PRODUCTO_ID)).isInstanceOf(CatalogoNoDisponibleException.class);
 
         assertThat(logs.list).hasSize(1);
+        assertThat(logs.list.get(0).getLevel()).isEqualTo(Level.WARN);
         String linea = logs.list.get(0).getFormattedMessage();
         assertThat(linea).contains("productoId=" + PRODUCTO_ID).contains("HTTP 500");
         assertThat(linea).doesNotContain("secreto-interno");
@@ -107,6 +109,7 @@ class ProductosServiceClientTest {
 
         assertThatThrownBy(() -> cliente.buscarProducto(PRODUCTO_ID)).isInstanceOf(CatalogoNoDisponibleException.class);
         assertThat(logs.list).hasSize(1);
+        assertThat(logs.list.get(0).getLevel()).isEqualTo(Level.WARN);
         assertThat(logs.list.get(0).getFormattedMessage()).contains("productoId=" + PRODUCTO_ID);
     }
 
@@ -122,6 +125,7 @@ class ProductosServiceClientTest {
                     .isNotInstanceOf(CatalogoNoDisponibleException.class);
 
             assertThat(logs.list).hasSize(1);
+            assertThat(logs.list.get(0).getLevel()).isEqualTo(Level.WARN);
             assertThat(logs.list.get(0).getFormattedMessage()).contains("productoId=" + PRODUCTO_ID).contains("HTTP " + rechazo.value());
         }
     }
