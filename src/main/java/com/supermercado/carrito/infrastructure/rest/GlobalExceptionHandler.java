@@ -78,7 +78,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler({AmqpConnectException.class, AmqpIOException.class, AmqpTimeoutException.class})
     public ResponseEntity<ErrorResponse> handleBrokerNoDisponible(RuntimeException ex) {
-        log.error("No se pudo publicar en RabbitMQ", ex);
+        log.warn("No se pudo publicar en RabbitMQ causa={}", ex.getClass().getSimpleName());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(new ErrorResponse("No se pudo iniciar el checkout en este momento. Intenta de nuevo."));
     }

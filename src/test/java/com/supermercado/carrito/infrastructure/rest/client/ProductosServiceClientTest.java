@@ -114,6 +114,17 @@ class ProductosServiceClientTest {
     }
 
     @Test
+    void deberiaLanzarCatalogoNoDisponible_YNoVolcarAlLogElCuerpoDeUnaRespuestaIlegible() {
+        servidor.expect(requestTo(URL)).andRespond(withSuccess("{\"nombre\": secreto-interno-no-es-json", MediaType.APPLICATION_JSON));
+
+        assertThatThrownBy(() -> cliente.buscarProducto(PRODUCTO_ID)).isInstanceOf(CatalogoNoDisponibleException.class);
+
+        assertThat(logs.list).hasSize(1);
+        assertThat(logs.list.get(0).getLevel()).isEqualTo(Level.WARN);
+        assertThat(logs.list.get(0).getFormattedMessage()).contains("productoId=" + PRODUCTO_ID).doesNotContain("secreto");
+    }
+
+    @Test
     void deberiaLanzarRespuestaInesperada_NoCatalogoNoDisponible_CuandoProductosServiceRechazaConUn4xxDistintoDe404() {
         for (HttpStatus rechazo : new HttpStatus[] {HttpStatus.BAD_REQUEST, HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN}) {
             servidor.reset();
