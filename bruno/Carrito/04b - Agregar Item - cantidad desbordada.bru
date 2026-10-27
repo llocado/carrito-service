@@ -23,10 +23,11 @@ body:json {
 }
 
 assert {
-  res.status: eq 422
+  res.status: eq 400
 }
 
 docs {
-  Corre "03" antes (el item ya esta en el carrito). Sumar 2147483647 a lo que ya hay desbordaba int:
-  pasaba el chequeo de stock y respondia 500. Ahora responde 422 (stock insuficiente) y no toca el carrito.
+  Corre "03" antes (el item ya esta en el carrito). Sumar 2147483647 a lo que ya hay desbordaba int: pasaba el chequeo de
+  stock y respondia 500. Ahora una cantidad de mas de 100 en una sola peticion se rechaza con 400 (validacion del cuerpo:
+  maximo 100 unidades por producto) y no toca el carrito.
 }

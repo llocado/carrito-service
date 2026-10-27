@@ -207,23 +207,49 @@ class CarritoIntegrationTest {
     }
 
     @Test
-    void agregarItem_DeberiaRetornar422_CuandoLaSumaConLoQueYaHayDesbordaInt() throws Exception {
+    void agregarItem_DeberiaRetornar400_CuandoUnaPeticionPideMasDelMaximo_AunConUnItemYaEnElCarrito() throws Exception {
         ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 100, true);
         when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
-
         mockMvc.perform(post("/api/carrito/items")
                         .with(jwtCliente())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new AgregarItemRequest(PRODUCTO_ID, 2))))
                 .andExpect(status().isOk());
 
+        // Integer.MAX_VALUE sumado a lo que ya hay desbordaba int y terminaba en 500; ahora la validacion lo corta en 400.
         mockMvc.perform(post("/api/carrito/items")
                         .with(jwtCliente())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new AgregarItemRequest(PRODUCTO_ID, Integer.MAX_VALUE))))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isBadRequest());
 
         assertThat(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID).orElseThrow().cantidadDe(PRODUCTO_ID)).isEqualTo(2);
+    }
+
+    @Test
+    void agregarItem_DeberiaRetornar422_CuandoLaSumaConLoQueYaHaySuperaElMaximo_AunqueHayaStock() throws Exception {
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 500, true);
+        when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
+        mockMvc.perform(post("/api/carrito/items")
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new AgregarItemRequest(PRODUCTO_ID, 60))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/carrito/items")
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new AgregarItemRequest(PRODUCTO_ID, 41))))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensaje").value("No puedes tener mas de 100 unidades de un mismo producto en el carrito"));
+        // 60 + 40 = 100 exactos si se acepta
+        mockMvc.perform(post("/api/carrito/items")
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new AgregarItemRequest(PRODUCTO_ID, 40))))
+                .andExpect(status().isOk());
+
+        assertThat(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID).orElseThrow().cantidadDe(PRODUCTO_ID)).isEqualTo(100);
     }
 
     @Test

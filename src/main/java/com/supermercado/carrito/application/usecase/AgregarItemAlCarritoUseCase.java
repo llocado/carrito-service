@@ -3,6 +3,7 @@ package com.supermercado.carrito.application.usecase;
 import com.supermercado.carrito.application.port.CarritoRepositoryPort;
 import com.supermercado.carrito.application.port.CatalogoProductosPort;
 import com.supermercado.carrito.application.port.CatalogoProductosPort.ProductoSnapshot;
+import com.supermercado.carrito.domain.exception.CantidadMaximaExcedidaException;
 import com.supermercado.carrito.domain.exception.ProductoNoEncontradoException;
 import com.supermercado.carrito.domain.exception.StockInsuficienteException;
 import com.supermercado.carrito.domain.model.Carrito;
@@ -24,6 +25,7 @@ public class AgregarItemAlCarritoUseCase {
 
     /**
      * @throws ProductoNoEncontradoException si productos-service no reconoce el producto.
+     * @throws CantidadMaximaExcedidaException si la cantidad total en el carrito superaria Carrito.MAX_UNIDADES_POR_PRODUCTO.
      * @throws StockInsuficienteException si la cantidad total en el carrito superaria el stock disponible.
      */
     @Transactional
@@ -36,7 +38,12 @@ public class AgregarItemAlCarritoUseCase {
 
         // Lo que ya hay en el carrito cuenta: agregar 2 a un item que tiene 4 pide 6 unidades en total.
         // La suma va en long: con int, cantidad = Integer.MAX_VALUE desbordaba a negativo, pasaba el chequeo y fallaba con 500.
-        if ((long) carrito.cantidadDe(productoId) + cantidad > producto.disponible()) {
+        long total = (long) carrito.cantidadDe(productoId) + cantidad;
+        // El tope va antes que el stock: es una regla de negocio y no depende de lo que diga el catalogo.
+        if (total > Carrito.MAX_UNIDADES_POR_PRODUCTO) {
+            throw new CantidadMaximaExcedidaException(productoId, Carrito.MAX_UNIDADES_POR_PRODUCTO);
+        }
+        if (total > producto.disponible()) {
             throw new StockInsuficienteException(productoId, producto.nombre(), producto.disponible());
         }
         carrito.agregarItem(producto.productoId(), producto.nombre(), producto.precioMonto(), producto.moneda(), cantidad);

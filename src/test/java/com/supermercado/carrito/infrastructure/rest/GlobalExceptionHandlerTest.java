@@ -3,7 +3,9 @@ package com.supermercado.carrito.infrastructure.rest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.supermercado.carrito.domain.exception.CantidadMaximaExcedidaException;
 import java.sql.SQLException;
+import java.util.UUID;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -39,6 +41,14 @@ class GlobalExceptionHandlerTest {
         DataIntegrityViolationException sinCausa = new DataIntegrityViolationException("sin causa");
 
         assertThatThrownBy(() -> handler.handleCarreraDeCreacion(sinCausa)).isSameAs(sinCausa);
+    }
+
+    @Test
+    void handleCantidadMaximaExcedida_DeberiaResponder422ConElMaximo() {
+        var respuesta = handler.handleCantidadMaximaExcedida(new CantidadMaximaExcedidaException(UUID.randomUUID(), 100));
+
+        assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(respuesta.getBody().mensaje()).contains("100");
     }
 
     private static DataIntegrityViolationException violacion(String constraint) {

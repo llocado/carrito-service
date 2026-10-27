@@ -24,6 +24,7 @@ import com.supermercado.carrito.application.usecase.VaciarCarritoUseCase;
 import com.supermercado.carrito.domain.exception.CarritoVacioException;
 import com.supermercado.carrito.domain.exception.CatalogoNoDisponibleException;
 import com.supermercado.carrito.domain.exception.CatalogoRespuestaInesperadaException;
+import com.supermercado.carrito.domain.exception.CantidadMaximaExcedidaException;
 import com.supermercado.carrito.domain.exception.ItemNoEncontradoEnCarritoException;
 import com.supermercado.carrito.domain.exception.ProductoNoEncontradoException;
 import com.supermercado.carrito.domain.exception.StockInsuficienteException;
@@ -167,6 +168,52 @@ class CarritoControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(agregarItemAlCarritoUseCase, never()).execute(any(), any(), anyInt());
+    }
+
+    @Test
+    void agregarItem_DeberiaRetornar400_CuandoUnaSolaPeticionPideMasDelMaximo() throws Exception {
+        mockMvc.perform(post("/api/carrito/items")
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new AgregarItemRequest(PRODUCTO_ID, Carrito.MAX_UNIDADES_POR_PRODUCTO + 1))))
+                .andExpect(status().isBadRequest());
+
+        verify(agregarItemAlCarritoUseCase, never()).execute(any(), any(), anyInt());
+    }
+
+    @Test
+    void agregarItem_DeberiaAceptarExactamenteElMaximo() throws Exception {
+        when(agregarItemAlCarritoUseCase.execute(USUARIO_ID, PRODUCTO_ID, 100)).thenReturn(Carrito.crear(USUARIO_ID));
+
+        mockMvc.perform(post("/api/carrito/items")
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new AgregarItemRequest(PRODUCTO_ID, 100))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void agregarItem_DeberiaRetornar422ConElMaximo_CuandoLaSumaConLoQueYaHaySuperaElTope() throws Exception {
+        when(agregarItemAlCarritoUseCase.execute(eq(USUARIO_ID), eq(PRODUCTO_ID), eq(41)))
+                .thenThrow(new CantidadMaximaExcedidaException(PRODUCTO_ID, 100));
+
+        mockMvc.perform(post("/api/carrito/items")
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new AgregarItemRequest(PRODUCTO_ID, 41))))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensaje").value("No puedes tener mas de 100 unidades de un mismo producto en el carrito"));
+    }
+
+    @Test
+    void actualizarCantidad_DeberiaRetornar400_CuandoLaCantidadSuperaElMaximo() throws Exception {
+        mockMvc.perform(put("/api/carrito/items/{productoId}", PRODUCTO_ID)
+                        .with(jwtCliente())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ActualizarCantidadRequest(Carrito.MAX_UNIDADES_POR_PRODUCTO + 1))))
+                .andExpect(status().isBadRequest());
+
+        verify(actualizarCantidadItemUseCase, never()).execute(any(), any(), anyInt());
     }
 
     @Test

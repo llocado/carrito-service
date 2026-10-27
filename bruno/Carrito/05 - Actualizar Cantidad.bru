@@ -1,7 +1,7 @@
 meta {
   name: 05 - Actualizar Cantidad
   type: http
-  seq: 8
+  seq: 9
 }
 
 put {
@@ -26,5 +26,5 @@ assert {
 }
 
 docs {
-  Fija la cantidad del item a un valor exacto (no suma, reemplaza).
+  Fija la cantidad del item a un valor exacto (no suma, reemplaza). Maximo 100 unidades por producto: mas de 100 da 400.
 }

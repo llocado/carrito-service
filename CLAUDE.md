@@ -56,6 +56,9 @@ tokens y escuchar eventos de `productos-service`.
   no lo vacía: lo agregado después del checkout se conserva. Idempotente por
   `eventId` (`eventos_procesados`). Politica de errores como en pedidos:
   payload inválido => DLQ; fallo transitorio => 1 intento + 3 reintentos.
+- **Tope de 100 unidades por producto** (`Carrito.MAX_UNIDADES_POR_PRODUCTO`): `@Max(100)` en `AgregarItemRequest` y
+  `ActualizarCantidadRequest` (una sola petición con más da 400) y `CantidadMaximaExcedidaException` (422) cuando la SUMA con lo que ya hay
+  lo supera; se comprueba **antes** que el stock. Acota el pedido que viaja a pedidos/pagos (que topan en 10.000 como segunda barrera).
 - **Stock como aviso temprano.** `AgregarItemAlCarritoUseCase` rechaza (422, `StockInsuficienteException`) si
   `cantidad ya en el carrito + nueva > disponible`; `ActualizarCantidadItemUseCase` solo consulta el catálogo cuando
   la cantidad SUBE. `ProductoSnapshot.disponible()` vale 0 si el producto está inactivo. No reserva nada: la

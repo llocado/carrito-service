@@ -11,6 +11,10 @@ import java.util.UUID;
 
 public class Carrito {
 
+    /** Tope de unidades de un mismo producto en el carrito: una compra de barrio no necesita mas, y acota el pedido que se enviara a pagos. */
+    public static final int MAX_UNIDADES_POR_PRODUCTO = 100;
+
+
     private final CarritoId id;
     private final String usuarioId;
     private final List<ItemCarrito> items;

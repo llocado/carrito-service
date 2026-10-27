@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.supermercado.carrito.application.port.CarritoRepositoryPort;
 import com.supermercado.carrito.application.port.CatalogoProductosPort;
 import com.supermercado.carrito.application.port.CatalogoProductosPort.ProductoSnapshot;
+import com.supermercado.carrito.domain.exception.CantidadMaximaExcedidaException;
 import com.supermercado.carrito.domain.exception.ProductoNoEncontradoException;
 import com.supermercado.carrito.domain.exception.StockInsuficienteException;
 import com.supermercado.carrito.domain.model.Carrito;
@@ -120,10 +121,60 @@ class AgregarItemAlCarritoUseCaseTest {
 
         // 2 + Integer.MAX_VALUE desborda int a negativo: antes pasaba el chequeo y terminaba en 500
         assertThatThrownBy(() -> agregarItemAlCarritoUseCase.execute(USUARIO_ID, PRODUCTO_ID, Integer.MAX_VALUE))
-                .isInstanceOf(StockInsuficienteException.class);
+                .isInstanceOf(CantidadMaximaExcedidaException.class);
 
         assertThat(carritoExistente.cantidadDe(PRODUCTO_ID)).as("no se modifica el carrito").isEqualTo(2);
         verify(carritoRepositoryPort, org.mockito.Mockito.never()).guardar(any(Carrito.class));
+    }
+
+    @Test
+    void execute_DeberiaAceptarExactamenteElMaximoDeUnidades_CuandoHayStock() {
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 500, true);
+        when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
+        when(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+        when(carritoRepositoryPort.guardar(any(Carrito.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Carrito resultado = agregarItemAlCarritoUseCase.execute(USUARIO_ID, PRODUCTO_ID, Carrito.MAX_UNIDADES_POR_PRODUCTO);
+
+        assertThat(resultado.cantidadDe(PRODUCTO_ID)).isEqualTo(100);
+    }
+
+    @Test
+    void execute_DeberiaRechazarUnaUnidadSobreElMaximo_AunqueHayaStockDeSobra() {
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 500, true);
+        when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
+        when(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> agregarItemAlCarritoUseCase.execute(USUARIO_ID, PRODUCTO_ID, 101))
+                .isInstanceOf(CantidadMaximaExcedidaException.class)
+                .hasMessageContaining("100");
+
+        verify(carritoRepositoryPort, org.mockito.Mockito.never()).guardar(any(Carrito.class));
+    }
+
+    @Test
+    void execute_DeberiaContarLoQueYaHayEnElCarrito_AlComprobarElMaximo() {
+        Carrito carritoExistente = Carrito.crear(USUARIO_ID);
+        carritoExistente.agregarItem(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 60);
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 500, true);
+        when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
+        when(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID)).thenReturn(Optional.of(carritoExistente));
+
+        // 60 + 41 = 101 > 100
+        assertThatThrownBy(() -> agregarItemAlCarritoUseCase.execute(USUARIO_ID, PRODUCTO_ID, 41))
+                .isInstanceOf(CantidadMaximaExcedidaException.class);
+
+        assertThat(carritoExistente.cantidadDe(PRODUCTO_ID)).as("no se modifica el carrito").isEqualTo(60);
+    }
+
+    @Test
+    void execute_DeberiaAvisarDelMaximoAntesQueDelStock_CuandoSePasanLosDos() {
+        ProductoSnapshot producto = new ProductoSnapshot(PRODUCTO_ID, "Manzana Fuji", new BigDecimal("1500"), "CLP", 5, true);
+        when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto));
+        when(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> agregarItemAlCarritoUseCase.execute(USUARIO_ID, PRODUCTO_ID, 150))
+                .isInstanceOf(CantidadMaximaExcedidaException.class);
     }
 
     @Test

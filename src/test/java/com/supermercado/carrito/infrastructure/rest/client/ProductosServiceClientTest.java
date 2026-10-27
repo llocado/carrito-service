@@ -98,7 +98,7 @@ class ProductosServiceClientTest {
         assertThat(logs.list.get(0).getLevel()).isEqualTo(Level.WARN);
         String linea = logs.list.get(0).getFormattedMessage();
         assertThat(linea).contains("productoId=" + PRODUCTO_ID).contains("HTTP 500");
-        assertThat(linea).doesNotContain("secreto-interno");
+        assertThat(linea).doesNotContain("secreto");
     }
 
     @Test

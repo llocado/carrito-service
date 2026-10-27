@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.supermercado.carrito.application.port.CarritoRepositoryPort;
 import com.supermercado.carrito.application.port.CatalogoProductosPort.ProductoSnapshot;
 import com.supermercado.carrito.application.port.CatalogoProductosPort;
+import com.supermercado.carrito.domain.exception.CantidadMaximaExcedidaException;
 import com.supermercado.carrito.domain.exception.ItemNoEncontradoEnCarritoException;
 import com.supermercado.carrito.domain.exception.ProductoNoEncontradoException;
 import com.supermercado.carrito.domain.exception.StockInsuficienteException;
@@ -140,6 +141,27 @@ class ActualizarCantidadItemUseCaseTest {
         assertThatThrownBy(() -> actualizarCantidadItemUseCase.execute(USUARIO_ID, PRODUCTO_ID, 3))
                 .isInstanceOf(StockInsuficienteException.class)
                 .hasMessageContaining("hay 0 disponible");
+    }
+
+    @Test
+    void execute_DeberiaRechazarMasDelMaximoDeUnidades_SinConsultarNada() {
+        assertThatThrownBy(() -> actualizarCantidadItemUseCase.execute(USUARIO_ID, PRODUCTO_ID, Carrito.MAX_UNIDADES_POR_PRODUCTO + 1))
+                .isInstanceOf(CantidadMaximaExcedidaException.class);
+
+        verify(carritoRepositoryPort, never()).buscarPorUsuarioId(any());
+        verify(catalogoProductosPort, never()).buscarProducto(any());
+        verify(carritoRepositoryPort, never()).guardar(any(Carrito.class));
+    }
+
+    @Test
+    void execute_DeberiaAceptarSubirHastaExactamenteElMaximo_CuandoHayStock() {
+        when(carritoRepositoryPort.buscarPorUsuarioId(USUARIO_ID)).thenReturn(Optional.of(carritoConItem(2)));
+        when(catalogoProductosPort.buscarProducto(PRODUCTO_ID)).thenReturn(Optional.of(producto(500, true)));
+        when(carritoRepositoryPort.guardar(any(Carrito.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Carrito resultado = actualizarCantidadItemUseCase.execute(USUARIO_ID, PRODUCTO_ID, Carrito.MAX_UNIDADES_POR_PRODUCTO);
+
+        assertThat(resultado.cantidadDe(PRODUCTO_ID)).isEqualTo(100);
     }
 
     private static Carrito carritoConItem(int cantidad) {

@@ -38,4 +38,7 @@ docs {
   ("El carrito cambio mientras se procesaba tu peticion. Intenta de nuevo."): es un conflicto de concurrencia para
   reintentar, nunca un 500. Bruno corre en secuencia, asi que no lo reproduce; lo cubre
   AgregarItemConcurrenteIntegrationTest.
+
+  Maximo 100 unidades de un mismo producto en el carrito: una peticion con mas de 100 da 400 y una que, sumada a lo que
+  ya hay, pasa de 100 da 422 (ver "04b" y "04c").
 }

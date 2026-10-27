@@ -1,5 +1,6 @@
 package com.supermercado.carrito.infrastructure.rest;
 
+import com.supermercado.carrito.domain.exception.CantidadMaximaExcedidaException;
 import com.supermercado.carrito.domain.exception.CarritoVacioException;
 import com.supermercado.carrito.domain.exception.CatalogoNoDisponibleException;
 import com.supermercado.carrito.domain.exception.CatalogoRespuestaInesperadaException;
@@ -47,6 +48,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(StockInsuficienteException.class)
     public ResponseEntity<ErrorResponse> handleStockInsuficiente(StockInsuficienteException ex) {
         log.info("Cantidad rechazada por stock insuficiente productoId={} disponible={}", ex.getProductoId(), ex.getDisponible());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(new ErrorResponse(ex.getMessage()));
+    }
+
+    /** 422 como el stock: la peticion es valida pero la regla de negocio la rechaza. El mensaje solo lleva el maximo. */
+    @ExceptionHandler(CantidadMaximaExcedidaException.class)
+    public ResponseEntity<ErrorResponse> handleCantidadMaximaExcedida(CantidadMaximaExcedidaException ex) {
+        log.info("Cantidad rechazada por superar el maximo productoId={} maximo={}", ex.getProductoId(), ex.getMaximo());
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(new ErrorResponse(ex.getMessage()));
     }
 
