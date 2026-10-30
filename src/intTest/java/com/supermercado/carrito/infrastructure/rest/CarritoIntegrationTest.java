@@ -5,8 +5,10 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -78,6 +80,25 @@ class CarritoIntegrationTest {
 
     @MockitoBean
     private CatalogoProductosPort catalogoProductosPort;
+
+    @Test
+    void preflightCors_DeberiaPermitirElOrigenDeLaTienda_SinExigirToken() throws Exception {
+        mockMvc.perform(options("/api/carrito/items")
+                        .header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "POST")
+                        .header("Access-Control-Request-Headers", "authorization,content-type"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
+    }
+
+    @Test
+    void preflightCors_DeberiaRechazarUnOrigenAjeno() throws Exception {
+        mockMvc.perform(options("/api/carrito/items")
+                        .header("Origin", "http://sitio-malicioso.example")
+                        .header("Access-Control-Request-Method", "POST"))
+                .andExpect(status().isForbidden())
+                .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
+    }
 
     @Test
     void agregarItem_DeberiaRetornar200YPersistirEnPostgres_CuandoElProductoExiste() throws Exception {

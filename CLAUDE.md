@@ -71,3 +71,9 @@ tokens y escuchar eventos de `productos-service`.
   que escriba el carrito debe ser `@Transactional` (la versión se lee al inicio de la transacción).
   Probado con dos transacciones reales (`CarritoConcurrenciaIntegrationTest`) y con peticiones
   HTTP simultáneas.
+
+## CORS (para tienda-web)
+
+`infrastructure/config/CorsConfig` + `.cors(...)` en `SecurityConfig`: el origen sale de `app.cors.allowed-origins` (`CORS_ORIGINS`, por defecto
+`http://localhost:5173`), nunca `*`, sin cookies. Debe vivir en Spring Security (no basta un `WebMvcConfigurer`): el *preflight* `OPTIONS` no lleva token y
+se rechazaría antes de llegar a MVC. Test: `CarritoIntegrationTest.preflightCors_*`.
