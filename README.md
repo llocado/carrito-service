@@ -1,5 +1,7 @@
 # carrito-service
 
+[![Tests](https://github.com/llocado/carrito-service/actions/workflows/tests.yml/badge.svg)](https://github.com/llocado/carrito-service/actions/workflows/tests.yml)
+
 Microservicio de carrito de compras del proyecto supermercado. Arquitectura
 hexagonal, mismo estilo que `productos-service` (`app-productos`): casos de
 uso en `application/usecase`, puertos en `application/port`, adaptadores en
