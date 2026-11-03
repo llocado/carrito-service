@@ -1,6 +1,6 @@
 # Eventos de carrito-service
 
-Contrato del bus de eventos (RabbitMQ) segun lo definido en el ROADMAP del proyecto (seccion "Contrato de eventos"). Cada evento va en el envelope comun (`eventId`, `eventType`, `eventVersion`, `occurredAt`, `producer`, `correlationId`, `payload`).
+Contrato del bus de eventos (RabbitMQ) segun el contrato comun del proyecto. Cada evento va en el envelope comun (`eventId`, `eventType`, `eventVersion`, `occurredAt`, `producer`, `correlationId`, `payload`).
 
 ## Publica (productor)
 

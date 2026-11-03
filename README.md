@@ -5,8 +5,8 @@ hexagonal, mismo estilo que `productos-service` (`app-productos`): casos de
 uso en `application/usecase`, puertos en `application/port`, adaptadores en
 `infrastructure/*`.
 
-Ver `docs/ROADMAP.md` en el repo `app-productos` para el diseño completo del
-proyecto (decisiones de arquitectura, mapa de servicios, contrato de eventos).
+Este servicio es una pieza de un sistema mayor (catálogo, carrito, pedidos, pagos, Keycloak y tienda web). El diseño completo, el diagrama
+de eventos y la demo de un comando están en el repo [`supermercado`](https://github.com/llocado/supermercado).
 
 ## Decisiones de diseño propias de este servicio
 
@@ -26,13 +26,13 @@ proyecto (decisiones de arquitectura, mapa de servicios, contrato de eventos).
   cantidades (y elimina el ítem si llega a cero), de modo que lo que el usuario
   agregó después del checkout se conserva. Es idempotente por `eventId`
   (tabla `eventos_procesados`): una reentrega no vuelve a descontar. Afina la
-  decisión del ROADMAP ("se vacía"), que borraba también lo agregado después.
+  decisión inicial del diseño ("se vacía"), que borraba también lo agregado después.
 - **`carrito-service` no importa el dominio de `productos-service`.** Su
   propio modelo (`Carrito`, `ItemCarrito`) es una representación mínima
-  propia — duplicación intencional, no un descuido (ver ROADMAP.md).
+  propia — duplicación intencional, no un descuido (cada servicio es dueño de su modelo).
 - **El checkout no modifica el carrito.** `POST /api/carrito/checkout` solo
   publica el evento `carrito.checkout-iniciado`; el carrito se vacía recién
-  cuando el pago se aprueba (política del ROADMAP). Responde `202` porque el
+  cuando el pago se aprueba (política del diseño). Responde `202` porque el
   pedido se crea de forma asíncrona en `pedidos-service`.
 - **Idempotencia del checkout con `Idempotency-Key` (opcional).** Si el
   cliente manda un UUID en ese header, el `eventId` del evento se deriva de
