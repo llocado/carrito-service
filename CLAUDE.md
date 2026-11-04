@@ -63,7 +63,7 @@ tokens y escuchar eventos de `productos-service`.
   `cantidad ya en el carrito + nueva > disponible`; `ActualizarCantidadItemUseCase` solo consulta el catálogo cuando
   la cantidad SUBE. `ProductoSnapshot.disponible()` vale 0 si el producto está inactivo. No reserva nada: la
   garantía es el descuento al pagar (`app-productos`).
-- `eventos_procesados` crece sin limite (retencion pendiente, ver `../docs/seguridad-pendiente.md`).
+- Retencion: `PurgaEventosJob` (diaria, `purga.*`) borra `eventos_procesados` de mas de 30 dias. Ver `../docs/seguridad-pendiente.md`.
 - **Bloqueo optimista en `CarritoEntity` (`@Version`, columna `carritos.version`).** Toda
   escritura del carrito es "leer, modificar en memoria, volcar completo": sin versión, el
   descuento asíncrono por `pago.aprobado` podía borrar en silencio lo que el usuario agregaba

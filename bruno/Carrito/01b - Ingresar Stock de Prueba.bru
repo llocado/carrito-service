@@ -1,7 +1,7 @@
 meta {
   name: 01b - Ingresar Stock de Prueba
   type: http
-  seq: 3
+  seq: 4
 }
 
 post {
@@ -11,6 +11,7 @@ post {
 }
 
 headers {
+  Authorization: Bearer {{tokenAdmin}}
   Content-Type: application/json
 }
 

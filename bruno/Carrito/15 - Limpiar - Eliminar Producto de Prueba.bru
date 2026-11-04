@@ -1,13 +1,17 @@
 meta {
   name: 15 - Limpiar - Eliminar Producto de Prueba
   type: http
-  seq: 19
+  seq: 20
 }
 
 delete {
   url: {{productosServiceUrl}}/api/productos/{{productoId}}
   body: none
   auth: none
+}
+
+headers {
+  Authorization: Bearer {{tokenAdmin}}
 }
 
 assert {
