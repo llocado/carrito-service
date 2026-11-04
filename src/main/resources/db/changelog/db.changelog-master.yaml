@@ -5,3 +5,5 @@ databaseChangeLog:
       file: db/changelog/changes/002-crear-tabla-eventos-procesados.yaml
   - include:
       file: db/changelog/changes/003-agregar-version-a-carritos.yaml
+  - include:
+      file: db/changelog/changes/004-indice-eventos-procesados-por-fecha.yaml
